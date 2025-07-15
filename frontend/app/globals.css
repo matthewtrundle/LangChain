@@ -1,0 +1,146 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500;600&display=swap');
+
+@layer base {
+  body {
+    @apply bg-degen-bg text-white font-sans antialiased;
+  }
+  
+  * {
+    @apply border-degen-border;
+  }
+}
+
+@layer components {
+  /* Card Components */
+  .card {
+    @apply bg-degen-surface border border-degen-border rounded-xl p-6 transition-all duration-300 hover:border-degen-primary/50 hover:shadow-glow/20;
+  }
+  
+  .card-gradient {
+    @apply bg-gradient-to-br from-degen-surface to-surface-800 border border-degen-border rounded-xl p-6 transition-all duration-300 hover:border-degen-primary/50;
+  }
+  
+  /* Button Components */
+  .btn {
+    @apply inline-flex items-center justify-center px-4 py-2.5 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  
+  .btn-primary {
+    @apply btn bg-degen-primary hover:bg-degen-primary/90 text-white hover:shadow-glow/30;
+  }
+  
+  .btn-secondary {
+    @apply btn bg-surface-700 hover:bg-surface-600 text-white border border-degen-border hover:border-degen-primary/50;
+  }
+  
+  .btn-ghost {
+    @apply btn bg-transparent hover:bg-surface-800 text-surface-300 hover:text-white;
+  }
+  
+  .btn-sm {
+    @apply px-3 py-1.5 text-sm;
+  }
+  
+  .btn-lg {
+    @apply px-6 py-3 text-lg;
+  }
+  
+  /* Typography */
+  .text-gradient {
+    @apply bg-gradient-to-r from-degen-primary to-degen-secondary bg-clip-text text-transparent;
+  }
+  
+  .text-apy {
+    @apply text-degen-success font-bold;
+  }
+  
+  .text-apy-extreme {
+    @apply text-degen-primary font-bold;
+  }
+  
+  .text-apy-high {
+    @apply text-accent-orange font-bold;
+  }
+  
+  .text-apy-medium {
+    @apply text-degen-warning font-bold;
+  }
+  
+  /* Badge Components */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  
+  .badge-success {
+    @apply badge bg-degen-success/10 text-degen-success border border-degen-success/20;
+  }
+  
+  .badge-warning {
+    @apply badge bg-degen-warning/10 text-degen-warning border border-degen-warning/20;
+  }
+  
+  .badge-danger {
+    @apply badge bg-degen-danger/10 text-degen-danger border border-degen-danger/20;
+  }
+  
+  .badge-primary {
+    @apply badge bg-degen-primary/10 text-degen-primary border border-degen-primary/20;
+  }
+  
+  .badge-secondary {
+    @apply badge bg-surface-700 text-surface-300 border border-degen-border;
+  }
+  
+  /* Input Components */
+  .input {
+    @apply bg-surface-800 border border-degen-border rounded-lg px-4 py-2.5 text-white placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-degen-primary/50 focus:border-degen-primary/50 transition-all duration-200;
+  }
+  
+  /* Status Indicators */
+  .status-dot {
+    @apply w-2 h-2 rounded-full;
+  }
+  
+  .status-online {
+    @apply status-dot bg-degen-success animate-pulse-slow;
+  }
+  
+  .status-offline {
+    @apply status-dot bg-degen-danger;
+  }
+  
+  .status-warning {
+    @apply status-dot bg-degen-warning;
+  }
+  
+  /* Loading States */
+  .loading-skeleton {
+    @apply bg-surface-700 animate-pulse rounded;
+  }
+  
+  .loading-spinner {
+    @apply animate-spin rounded-full border-2 border-surface-600 border-t-degen-primary;
+  }
+  
+  /* Hover Effects */
+  .hover-glow {
+    @apply transition-all duration-300 hover:shadow-glow;
+  }
+  
+  .hover-lift {
+    @apply transition-all duration-300 hover:-translate-y-1;
+  }
+  
+  /* Special Effects */
+  .gradient-border {
+    @apply bg-gradient-to-r from-degen-primary to-degen-secondary p-[1px] rounded-xl;
+  }
+  
+  .gradient-border-content {
+    @apply bg-degen-surface rounded-[11px] p-6;
+  }
+}

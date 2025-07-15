@@ -1,0 +1,12 @@
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "python main.py"
+healthcheckPath = "/health"
+healthcheckTimeout = 120
+restartPolicyType = "always"
+
+[[services]]
+name = "soldegen-backend"
+port = 8000
