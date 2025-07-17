@@ -6,7 +6,8 @@ load_dotenv()
 class Config:
     # Core API keys
     HELIUS_API_KEY = os.getenv("HELIUS_API_KEY")
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+    OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+    OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "openai/gpt-3.5-turbo")  # Default to cheap model
     
     # Optional API keys for enhanced features
     COINGECKO_API_KEY = os.getenv("COINGECKO_API_KEY")  # Free tier available
@@ -31,3 +32,13 @@ class Config:
     # Pool age thresholds (in hours)
     NEW_POOL_MAX_AGE = 24
     DEGEN_POOL_MAX_AGE = 72
+    
+    # Rate limiting (calls per minute)
+    OPENROUTER_RATE_LIMIT = 20  # Conservative to save credits
+    HELIUS_RATE_LIMIT = 300  # Helius has generous limits
+    COINGECKO_RATE_LIMIT = 10  # Free tier limit
+    
+    # API cost optimization
+    MAX_POOLS_PER_SCAN = 10  # Limit pools analyzed per scan to save API credits
+    ENABLE_CACHING = True  # Cache results for 5 minutes
+    CACHE_TTL = 300  # 5 minutes

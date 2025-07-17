@@ -15,11 +15,16 @@ class BaseAgent(ABC):
         self.description = description
         self.tools = tools
         
-        # Initialize LLM
+        # Initialize LLM with OpenRouter
         self.llm = ChatOpenAI(
-            model="gpt-4-turbo-preview",
+            model=Config.OPENROUTER_MODEL,
             temperature=0.1,
-            api_key=Config.OPENAI_API_KEY
+            api_key=Config.OPENROUTER_API_KEY,
+            base_url="https://openrouter.ai/api/v1",
+            default_headers={
+                "HTTP-Referer": "https://github.com/matthewtrundle/LangChain",
+                "X-Title": "Solana Degen Hunter"
+            }
         )
         
         # Initialize memory
