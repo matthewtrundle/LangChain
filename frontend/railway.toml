@@ -4,10 +4,5 @@ buildCommand = "npm install && npm run build"
 
 [deploy]
 startCommand = "npm start"
-healthcheckPath = "/"
-healthcheckTimeout = 120
-restartPolicyType = "always"
-
-[[services]]
-name = "soldegen-frontend"
-port = 3000
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
