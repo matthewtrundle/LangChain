@@ -6,9 +6,9 @@ from langchain.schema import SystemMessage
 from typing import List, Dict, Any
 import json
 
-from ..tools.pool_scanner import PoolScannerTool
-from ..tools.degen_scorer import DegenScorerTool
-from ..config import Config
+from tools.pool_scanner import PoolScannerTool
+from tools.degen_scorer import DegenScorerTool
+from config import Config
 
 class YieldHunterAgent:
     def __init__(self):

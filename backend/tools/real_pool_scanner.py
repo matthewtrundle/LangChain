@@ -4,7 +4,7 @@ from typing import Dict, List, Optional
 from datetime import datetime, timedelta
 from langchain.tools import BaseTool
 from langchain.pydantic_v1 import BaseModel, Field
-from .helius_client import HeliusClient
+from tools.helius_client import HeliusClient
 
 class RealPoolScannerTool(BaseTool):
     name = "real_pool_scanner"

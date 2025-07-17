@@ -1,9 +1,9 @@
 from typing import Dict, List, Any
-from .base_agent import BaseAgent
-from ..tools.pool_scanner import PoolScannerTool
-from ..tools.real_pool_scanner import RealPoolScannerTool
-from ..tools.web_search_tool import WebSearchTool
-from ..tools.helius_client import HeliusClient
+from agents.base_agent import BaseAgent
+from tools.pool_scanner import PoolScannerTool
+from tools.real_pool_scanner import RealPoolScannerTool
+from tools.web_search_tool import WebSearchTool
+from tools.helius_client import HeliusClient
 import json
 
 class ScannerAgent(BaseAgent):

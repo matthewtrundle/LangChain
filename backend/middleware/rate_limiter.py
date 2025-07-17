@@ -3,7 +3,7 @@ from typing import Dict, Optional
 from fastapi import HTTPException
 from collections import defaultdict, deque
 from datetime import datetime, timedelta
-from ..config import Config
+from config import Config
 
 class RateLimiter:
     """Simple in-memory rate limiter to prevent API abuse and save credits"""

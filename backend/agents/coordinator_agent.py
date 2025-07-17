@@ -1,8 +1,8 @@
 from typing import Dict, List, Any, Optional
-from .base_agent import BaseAgent
-from .scanner_agent import ScannerAgent
-from .analyzer_agent import AnalyzerAgent
-from .monitor_agent import MonitorAgent
+from agents.base_agent import BaseAgent
+from agents.scanner_agent import ScannerAgent
+from agents.analyzer_agent import AnalyzerAgent
+from agents.monitor_agent import MonitorAgent
 from datetime import datetime
 import json
 

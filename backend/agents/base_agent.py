@@ -5,7 +5,7 @@ from langchain.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain.memory import ConversationBufferWindowMemory
 from langchain.tools import BaseTool
-from ..config import Config
+from config import Config
 
 class BaseAgent(ABC):
     """Base class for all specialized agents"""

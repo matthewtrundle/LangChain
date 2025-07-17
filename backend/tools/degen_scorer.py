@@ -2,7 +2,7 @@ from typing import Dict, List, Optional, Any
 from langchain.tools import BaseTool
 from langchain.pydantic_v1 import BaseModel, Field
 import json
-from .helius_client import HeliusClient
+from tools.helius_client import HeliusClient
 
 class DegenScorerInput(BaseModel):
     pool_address: str = Field(description="Pool address to analyze")

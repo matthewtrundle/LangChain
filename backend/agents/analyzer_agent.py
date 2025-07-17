@@ -1,7 +1,7 @@
 from typing import Dict, List, Any
-from .base_agent import BaseAgent
-from ..tools.degen_scorer import DegenScorerTool
-from ..tools.helius_client import HeliusClient
+from agents.base_agent import BaseAgent
+from tools.degen_scorer import DegenScorerTool
+from tools.helius_client import HeliusClient
 import json
 
 class AnalyzerAgent(BaseAgent):

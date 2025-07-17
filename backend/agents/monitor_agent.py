@@ -1,6 +1,6 @@
 from typing import Dict, List, Any, Optional
-from .base_agent import BaseAgent
-from ..tools.helius_client import HeliusClient
+from agents.base_agent import BaseAgent
+from tools.helius_client import HeliusClient
 from datetime import datetime, timedelta
 import json
 

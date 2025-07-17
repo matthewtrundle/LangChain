@@ -3,7 +3,7 @@ from langchain.tools import BaseTool
 from langchain.pydantic_v1 import BaseModel, Field
 from datetime import datetime, timedelta
 import json
-from .helius_client import HeliusClient, PROGRAM_IDS
+from tools.helius_client import HeliusClient, PROGRAM_IDS
 
 class PoolScannerInput(BaseModel):
     min_apy: float = Field(description="Minimum APY threshold to scan for")
