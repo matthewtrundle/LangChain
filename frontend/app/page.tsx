@@ -172,7 +172,7 @@ export default function Home() {
                       <div className="flex-1 h-px bg-gradient-to-r from-cyber-tertiary/50 to-transparent"></div>
                     </div>
                     <pre className="text-sm text-text-secondary whitespace-pre-wrap font-mono leading-relaxed">
-                      <span className="text-cyber-primary">></span> {agentResponse}
+                      <span className="text-cyber-primary">&gt;</span> {agentResponse}
                     </pre>
                   </div>
                 )}
