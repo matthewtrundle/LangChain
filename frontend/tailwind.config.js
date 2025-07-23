@@ -8,60 +8,67 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Professional dark theme with degen accents
-        'primary': {
-          50: '#f0f9ff',
-          100: '#e0f2fe',
-          200: '#bae6fd',
-          300: '#7dd3fc',
-          400: '#38bdf8',
-          500: '#0ea5e9',
-          600: '#0284c7',
-          700: '#0369a1',
-          800: '#075985',
-          900: '#0c4a6e',
+        // Cyber terminal theme - high energy colors
+        'cyber': {
+          primary: '#00ff88',      // Electric green (success/profit)
+          secondary: '#ff0080',    // Hot pink (danger/extreme)
+          tertiary: '#00d4ff',     // Cyan blue (info/analysis)
+          warning: '#ffaa00',      // Bright orange (warning)
+          purple: '#8b5cf6',       // Keep existing purple
         },
-        'surface': {
-          50: '#fafafa',
-          100: '#f5f5f5',
-          200: '#e5e5e5',
-          300: '#d4d4d4',
-          400: '#a3a3a3',
-          500: '#737373',
-          600: '#525252',
-          700: '#404040',
-          800: '#262626',
-          900: '#171717',
-          950: '#0a0a0a',
+        
+        // Terminal background system - deeper, richer
+        'terminal': {
+          bg: '#000008',           // Almost black with blue tint
+          surface: '#0a0a12',      // Dark blue-black
+          card: '#141420',         // Lighter surface
+          border: '#1a1a2e',       // Subtle borders
+          accent: '#242438',       // Hover states
         },
-        'accent': {
-          purple: '#8b5cf6',
-          green: '#22c55e',
-          red: '#ef4444',
-          yellow: '#eab308',
-          orange: '#f97316',
-          cyan: '#06b6d4',
+        
+        // Text hierarchy - better contrast
+        'text': {
+          primary: '#ffffff',      // Pure white
+          secondary: '#e0e0ff',    // Light blue-white
+          tertiary: '#b0b0d0',     // Muted blue-gray
+          accent: '#00ff88',       // Green accent text
         },
+        
+        // APY/Performance colors - more dramatic
+        'performance': {
+          extreme: '#ff0080',      // Hot pink for 2000%+
+          high: '#ff4500',         // Orange red for 1000%+
+          good: '#ffaa00',         // Gold for 500%+
+          normal: '#00ff88',       // Green for standard
+        },
+
+        // Legacy colors for compatibility
         'degen': {
-          primary: '#8b5cf6',
-          secondary: '#06b6d4',
-          success: '#22c55e',
-          warning: '#eab308',
-          danger: '#ef4444',
-          bg: '#0a0a0a',
-          surface: '#171717',
-          border: '#262626',
+          primary: '#00ff88',
+          secondary: '#00d4ff',
+          success: '#00ff88',
+          warning: '#ffaa00',
+          danger: '#ff0080',
+          bg: '#000008',
+          surface: '#141420',
+          border: '#1a1a2e',
         }
       },
       fontFamily: {
         'sans': ['Inter', 'system-ui', 'sans-serif'],
-        'mono': ['Fira Code', 'ui-monospace', 'monospace'],
+        'mono': ['JetBrains Mono', 'Fira Code', 'ui-monospace', 'monospace'],
       },
       animation: {
         'pulse-slow': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'bounce-subtle': 'bounce 1s ease-in-out infinite',
         'fade-in': 'fadeIn 0.5s ease-in-out',
         'slide-up': 'slideUp 0.3s ease-out',
+        'grid-move': 'grid-move 20s linear infinite',
+        'pulse-glow': 'pulse-glow 2s ease-in-out infinite alternate',
+        'number-count': 'number-count 1s ease-out',
+        'cyber-pulse': 'cyber-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'slide-up-fade': 'slide-up-fade 0.5s ease-out',
+        'glow-rotate': 'glow-rotate 3s linear infinite',
       },
       keyframes: {
         fadeIn: {
@@ -72,11 +79,54 @@ module.exports = {
           '0%': { transform: 'translateY(10px)', opacity: '0' },
           '100%': { transform: 'translateY(0)', opacity: '1' },
         },
+        'grid-move': {
+          '0%': { transform: 'translate(0, 0)' },
+          '100%': { transform: 'translate(50px, 50px)' },
+        },
+        'pulse-glow': {
+          '0%': { 
+            textShadow: '0 0 20px rgba(0, 255, 136, 0.5)',
+            transform: 'scale(1)',
+          },
+          '100%': { 
+            textShadow: '0 0 30px rgba(0, 255, 136, 0.8)',
+            transform: 'scale(1.02)',
+          },
+        },
+        'cyber-pulse': {
+          '0%, 100%': { opacity: 1 },
+          '50%': { opacity: 0.5 },
+        },
+        'slide-up-fade': {
+          '0%': { transform: 'translateY(20px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
+        'glow-rotate': {
+          '0%': { transform: 'rotate(0deg)' },
+          '100%': { transform: 'rotate(360deg)' },
+        },
       },
       boxShadow: {
-        'glow': '0 0 20px rgba(139, 92, 246, 0.3)',
-        'glow-green': '0 0 20px rgba(34, 197, 94, 0.3)',
-        'glow-red': '0 0 20px rgba(239, 68, 68, 0.3)',
+        'glow': '0 0 20px rgba(0, 255, 136, 0.3)',
+        'glow-green': '0 0 20px rgba(0, 255, 136, 0.3)',
+        'glow-red': '0 0 20px rgba(255, 0, 128, 0.3)',
+        'glow-blue': '0 0 20px rgba(0, 212, 255, 0.3)',
+        'glow-orange': '0 0 20px rgba(255, 170, 0, 0.3)',
+        'cyber-glow': '0 0 40px rgba(0, 255, 136, 0.2), 0 0 80px rgba(0, 255, 136, 0.1)',
+        'card-hover': '0 20px 40px rgba(0, 0, 0, 0.3), 0 0 40px rgba(0, 255, 136, 0.1)',
+      },
+      fontSize: {
+        '7xl': '5rem',
+        '8xl': '6rem',
+        '9xl': '7rem',
+      },
+      spacing: {
+        '18': '4.5rem',
+        '88': '22rem',
+        '128': '32rem',
+      },
+      backdropBlur: {
+        'xs': '2px',
       },
     },
   },

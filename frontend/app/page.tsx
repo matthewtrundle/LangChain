@@ -148,45 +148,64 @@ export default function Home() {
                 </div>
                 
                 {lastQuery && (
-                  <div className="bg-surface-800/50 border border-degen-border rounded-lg p-4 mb-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-sm font-medium text-surface-300">Query:</span>
+                  <div className="bg-terminal-surface/50 border border-terminal-border rounded-lg p-6 mb-6 backdrop-blur-sm">
+                    <div className="flex items-center gap-3 mb-3">
+                      <span className="text-terminal text-xs uppercase tracking-widest">QUERY INPUT:</span>
+                      <div className="flex-1 h-px bg-gradient-to-r from-cyber-primary/50 to-transparent"></div>
                     </div>
-                    <p className="text-white">{lastQuery}</p>
+                    <p className="text-text-secondary font-mono text-sm leading-relaxed">
+                      <span className="text-cyber-primary">$</span> {lastQuery}
+                    </p>
                   </div>
                 )}
                 
                 {agentResponse && (
-                  <div className="bg-degen-primary/10 border border-degen-primary/20 rounded-lg p-4 mb-4">
-                    <p className="text-surface-200 leading-relaxed">{agentResponse}</p>
+                  <div className="bg-terminal-card/30 border border-terminal-border rounded-lg p-6 backdrop-blur-sm mb-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <span className="text-terminal text-xs uppercase tracking-widest">SYSTEM OUTPUT:</span>
+                      <div className="flex-1 h-px bg-gradient-to-r from-cyber-tertiary/50 to-transparent"></div>
+                    </div>
+                    <pre className="text-sm text-text-secondary whitespace-pre-wrap font-mono leading-relaxed">
+                      <span className="text-cyber-primary">></span> {agentResponse}
+                    </pre>
                   </div>
                 )}
                 
                 {scanStats && (
-                  <div className="flex items-center gap-2 text-xs text-surface-500">
-                    <span>Data Sources:</span>
-                    <span>{scanStats.sources.join(', ')}</span>
+                  <div className="flex items-center gap-3 text-terminal text-xs">
+                    <span className="uppercase tracking-widest">DATA SOURCES:</span>
+                    <div className="flex items-center gap-2">
+                      {scanStats.sources.map((source, i) => (
+                        <span key={i} className="bg-terminal-surface px-2 py-1 rounded border border-cyber-primary/20">
+                          {source}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
             )}
 
-            {/* Opportunities Grid */}
+            {/* Enhanced Opportunities Grid */}
             {pools.length > 0 && !isLoading && (
-              <div className="space-y-6">
+              <div className="space-y-8">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-3xl font-bold text-white">
-                    Opportunities Discovered
+                  <h2 className="text-4xl font-bold text-text-primary flex items-center gap-4">
+                    <span className="text-terminal text-lg">></span>
+                    <span className="text-gradient">OPPORTUNITIES DISCOVERED</span>
                   </h2>
-                  <div className="text-sm text-surface-400">
-                    {pools.length} pools found
+                  <div className="flex items-center gap-3">
+                    <div className="status-dot status-online"></div>
+                    <span className="text-terminal text-sm font-semibold">
+                      {pools.length} POOLS FOUND
+                    </span>
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   {pools.map((pool, index) => (
-                    <OpportunityCard
-                      key={`${pool.pool_address}-${index}`}
+                    <div key={`${pool.pool_address}-${index}`} className="opportunity-card">
+                      <OpportunityCard
                       pool={pool}
                       onAnalyze={handleAnalyze}
                     />
