@@ -197,7 +197,7 @@ export default function Home() {
               <div className="space-y-8">
                 <div className="flex items-center justify-between">
                   <h2 className="text-4xl font-bold text-text-primary flex items-center gap-4">
-                    <span className="text-terminal text-lg">></span>
+                    <span className="text-terminal text-lg">&gt;</span>
                     <span className="text-gradient">OPPORTUNITIES DISCOVERED</span>
                   </h2>
                   <div className="flex items-center gap-3">
