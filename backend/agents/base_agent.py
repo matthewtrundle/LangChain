@@ -55,20 +55,25 @@ class BaseAgent(ABC):
         prompt = PromptTemplate.from_template(f"""
 {self._get_system_prompt()}
 
-Available tools:
+You have access to the following tools:
+
 {{tools}}
 
-Your decision-making process:
-1. Understand the task clearly
-2. Choose the most appropriate tool(s)
-3. Analyze the results
-4. Provide clear, actionable insights
-5. Communicate with other agents when needed
+Use the following format:
+
+Question: the input question you must answer
+Thought: you should always think about what to do
+Action: the action to take, should be one of [{{tool_names}}]
+Action Input: the input to the action
+Observation: the result of the action
+... (this Thought/Action/Action Input/Observation can repeat N times)
+Thought: I now know the final answer
+Final Answer: the final answer to the original input question
 
 Previous conversation:
 {{chat_history}}
 
-Task: {{input}}
+Question: {{input}}
 Thought: {{agent_scratchpad}}
 """)
         
