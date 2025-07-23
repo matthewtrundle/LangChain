@@ -14,6 +14,7 @@ class PoolScannerTool(BaseTool):
     name = "pool_scanner"
     description = "Scans for new liquidity pools on Solana with high APY potential"
     args_schema = PoolScannerInput
+    helius_client: Any = Field(default=None, exclude=True)
     
     def __init__(self):
         super().__init__()

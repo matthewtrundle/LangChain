@@ -12,6 +12,7 @@ class DegenScorerTool(BaseTool):
     name = "degen_scorer"
     description = "Calculates a degen score (0-10) for a pool based on risk factors"
     args_schema = DegenScorerInput
+    helius_client: Any = Field(default=None, exclude=True)
     
     def __init__(self):
         super().__init__()

@@ -9,6 +9,7 @@ from tools.helius_client import HeliusClient
 class RealPoolScannerTool(BaseTool):
     name = "real_pool_scanner"
     description = "Scans for REAL high-yield pools using live data from DeFiLlama, Helius, and Jupiter"
+    helius_client: HeliusClient = Field(default=None, exclude=True)
     
     def __init__(self):
         super().__init__()
