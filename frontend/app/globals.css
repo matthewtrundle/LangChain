@@ -17,7 +17,7 @@
 @layer components {
   /* Card Components */
   .card {
-    @apply bg-degen-surface border border-degen-border rounded-xl p-6 transition-all duration-300 hover:border-degen-primary/50 hover:shadow-glow/20;
+    @apply bg-degen-surface border border-degen-border rounded-xl p-6 transition-all duration-300 hover:border-degen-primary/50 hover:shadow-glow;
   }
   
   .card-gradient {
