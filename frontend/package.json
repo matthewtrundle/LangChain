@@ -2,6 +2,7 @@
   "name": "solana-degen-hunter-frontend",
   "version": "0.1.0",
   "private": true,
+  "description": "High-yield opportunity scanner for Solana",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
