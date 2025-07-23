@@ -30,7 +30,7 @@
   }
   
   .btn-primary {
-    @apply btn bg-degen-primary hover:bg-degen-primary/90 text-white hover:shadow-glow/30;
+    @apply btn bg-degen-primary hover:bg-degen-primary/90 text-white hover:shadow-glow;
   }
   
   .btn-secondary {
