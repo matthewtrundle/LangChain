@@ -116,6 +116,35 @@
 .loader-cell:nth-child(8) { animation-delay: 1.4s; }
 .loader-cell:nth-child(9) { animation-delay: 1.6s; }
 
+/* Agent Flow Animations */
+.agent-node {
+  @apply relative transition-all duration-500;
+}
+
+@keyframes data-flow {
+  0% { 
+    stroke-dashoffset: 0;
+  }
+  100% { 
+    stroke-dashoffset: -20;
+  }
+}
+
+.animate-slide-right {
+  animation: slideRight 1s ease-out forwards;
+}
+
+@keyframes slideRight {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 @layer components {
   /* Enhanced Card Components */
   .card {

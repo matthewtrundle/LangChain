@@ -6,6 +6,7 @@ import { apiClient } from '@/lib/api'
 import OpportunityCard from '@/components/OpportunityCard'
 import SearchBar from '@/components/SearchBar'
 import SystemStatus from '@/components/SystemStatus'
+import AgentFlowVisualizer from '@/components/AgentFlowVisualizer'
 import { TrendingUpIcon, ActivityIcon, DatabaseIcon } from '@/components/icons/Icons'
 
 export default function Home() {
@@ -88,28 +89,34 @@ export default function Home() {
       
       {/* Main container */}
       <div className="relative z-10 container mx-auto px-6 py-12 max-w-8xl">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold text-gradient mb-4">
-            SolDegen
-          </h1>
-          <p className="text-xl text-text-secondary max-w-2xl mx-auto">
-            Multi-agent AI system for discovering high-yield opportunities on Solana
-          </p>
-          <div className="flex items-center justify-center gap-6 mt-6 text-sm text-text-tertiary">
-            <div className="flex items-center gap-2">
-              <TrendingUpIcon className="w-4 h-4" />
-              <span>Scanner Agent</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <ActivityIcon className="w-4 h-4" />
-              <span>Analyzer Agent</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <DatabaseIcon className="w-4 h-4" />
-              <span>Monitor Agent</span>
+        {/* Enhanced Header */}
+        <header className="mb-16">
+          <div className="text-center space-y-6">
+            <h1 className="text-cyber-title">
+              SOL<span className="text-cyber-primary">DEGEN</span>
+            </h1>
+            <p className="text-xl text-text-secondary max-w-3xl mx-auto leading-relaxed">
+              Multi-agent AI system hunting <span className="text-cyber-primary font-semibold">extreme yields</span> 
+              across Solana DeFi protocols
+            </p>
+            
+            {/* Live stats bar */}
+            <div className="flex justify-center items-center gap-8 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="status-dot status-online"></div>
+                <span className="text-terminal">4 AGENTS ACTIVE</span>
+              </div>
+              <div className="text-text-tertiary">|</div>
+              <div className="text-cyber-tertiary">SCANNING 47 PROTOCOLS</div>
+              <div className="text-text-tertiary">|</div>
+              <div className="text-performance-extreme font-bold">HIGHEST: 2,847% APY</div>
             </div>
           </div>
+        </header>
+        
+        {/* Agent Flow Visualizer */}
+        <div className="mb-12">
+          <AgentFlowVisualizer isProcessing={isLoading} />
         </div>
 
         {/* Main Content Grid */}
@@ -123,20 +130,16 @@ export default function Home() {
               isLoading={isLoading}
             />
 
-            {/* Loading State */}
+            {/* Loading State - Now simplified since we have the visualizer */}
             {isLoading && (
               <div className="card text-center">
-                <div className="flex flex-col items-center justify-center py-12">
-                  <div className="loading-spinner w-12 h-12 mb-4" />
-                  <h3 className="text-xl font-semibold text-text-primary mb-2">
-                    Multi-Agent System Processing...
+                <div className="flex flex-col items-center justify-center py-8">
+                  <h3 className="text-xl font-bold text-cyber-primary mb-2">
+                    PROCESSING YOUR REQUEST...
                   </h3>
-                  <p className="text-text-tertiary mb-4">
-                    Agents are coordinating to find the best opportunities
+                  <p className="text-text-tertiary">
+                    Watch the agents coordinate above to find the best opportunities
                   </p>
-                  <div className="flex items-center gap-4 text-sm text-text-tertiary">
-                    <span>Scanner → Analyzer → Coordinator</span>
-                  </div>
                 </div>
               </div>
             )}
