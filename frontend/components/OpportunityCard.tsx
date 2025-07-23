@@ -69,14 +69,14 @@ export default function OpportunityCard({ pool, onAnalyze }: OpportunityCardProp
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
-            <h3 className="text-lg font-semibold text-white group-hover:text-gradient transition-colors">
+            <h3 className="text-lg font-semibold text-text-primary group-hover:text-gradient transition-colors">
               {pool.token_symbols || `${pool.token_a}/${pool.token_b}`}
             </h3>
             {isHighRisk && (
               <AlertTriangleIcon className="text-degen-warning" />
             )}
           </div>
-          <div className="flex items-center gap-2 text-sm text-surface-400">
+          <div className="flex items-center gap-2 text-sm text-text-tertiary">
             <span className="capitalize">{pool.protocol}</span>
             <span>•</span>
             <span>{formatAge()}</span>
@@ -93,25 +93,25 @@ export default function OpportunityCard({ pool, onAnalyze }: OpportunityCardProp
           <div className={`text-3xl font-bold ${getApyTextClass(apy)} group-hover:scale-110 transition-transform`}>
             {apy.toFixed(1)}%
           </div>
-          <div className="text-xs text-surface-400 uppercase tracking-wide">APY</div>
+          <div className="text-xs text-text-tertiary uppercase tracking-wide">APY</div>
         </div>
       </div>
 
       {/* Metrics Grid */}
       <div className="grid grid-cols-2 gap-4 mb-6">
-        <div className="bg-surface-800/50 rounded-lg p-3">
+        <div className="bg-terminal-surface/50 rounded-lg p-3">
           <div className="flex items-center gap-2 mb-1">
-            <DollarSignIcon className="w-4 h-4 text-surface-400" />
-            <span className="text-xs text-surface-400 uppercase tracking-wide">TVL</span>
+            <DollarSignIcon className="w-4 h-4 text-text-tertiary" />
+            <span className="text-xs text-text-tertiary uppercase tracking-wide">TVL</span>
           </div>
-          <div className="text-lg font-semibold text-white">{formatValue(pool.tvl)}</div>
+          <div className="text-lg font-semibold text-text-primary">{formatValue(pool.tvl)}</div>
         </div>
-        <div className="bg-surface-800/50 rounded-lg p-3">
+        <div className="bg-terminal-surface/50 rounded-lg p-3">
           <div className="flex items-center gap-2 mb-1">
-            <ActivityIcon className="w-4 h-4 text-surface-400" />
-            <span className="text-xs text-surface-400 uppercase tracking-wide">24h Volume</span>
+            <ActivityIcon className="w-4 h-4 text-text-tertiary" />
+            <span className="text-xs text-text-tertiary uppercase tracking-wide">24h Volume</span>
           </div>
-          <div className="text-lg font-semibold text-white">{formatValue(pool.volume_24h)}</div>
+          <div className="text-lg font-semibold text-text-primary">{formatValue(pool.volume_24h)}</div>
         </div>
       </div>
 
@@ -141,8 +141,8 @@ export default function OpportunityCard({ pool, onAnalyze }: OpportunityCardProp
 
       {/* Recommendation */}
       {pool.recommendation && (
-        <div className="bg-surface-800/30 border border-degen-border rounded-lg p-3 mb-4">
-          <p className="text-sm text-surface-300 leading-relaxed">
+        <div className="bg-terminal-surface/30 border border-degen-border rounded-lg p-3 mb-4">
+          <p className="text-sm text-text-tertiary leading-relaxed">
             {pool.recommendation}
           </p>
         </div>
@@ -175,7 +175,7 @@ export default function OpportunityCard({ pool, onAnalyze }: OpportunityCardProp
 
       {/* Footer */}
       <div className="mt-4 pt-3 border-t border-degen-border">
-        <div className="flex items-center justify-between text-xs text-surface-500">
+        <div className="flex items-center justify-between text-xs text-text-tertiary">
           <span>Pool: {pool.pool_address.slice(0, 8)}...{pool.pool_address.slice(-6)}</span>
           {pool.sustainability_score && (
             <span>Sustainability: {pool.sustainability_score.toFixed(1)}/10</span>

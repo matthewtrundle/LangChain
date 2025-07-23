@@ -33,7 +33,7 @@ export default function SearchBar({ onSearch, onQuickScan, isLoading }: SearchBa
         <form onSubmit={handleSubmit}>
           <div className="flex gap-3">
             <div className="relative flex-1">
-              <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-surface-400" />
+              <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-tertiary" />
               <input
                 type="text"
                 value={query}
@@ -67,7 +67,7 @@ export default function SearchBar({ onSearch, onQuickScan, isLoading }: SearchBa
       {/* Quick Actions */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-surface-400">Quick Scan:</span>
+          <span className="text-sm font-medium text-text-tertiary">Quick Scan:</span>
           <div className="h-px bg-degen-border flex-1"></div>
         </div>
         
@@ -83,8 +83,8 @@ export default function SearchBar({ onSearch, onQuickScan, isLoading }: SearchBa
               >
                 <IconComponent className={`w-5 h-5 ${action.color} group-hover:scale-110 transition-transform`} />
                 <div className="text-center">
-                  <div className="font-medium text-white">{action.label}</div>
-                  <div className="text-xs text-surface-400">{action.sublabel}</div>
+                  <div className="font-medium text-text-primary">{action.label}</div>
+                  <div className="text-xs text-text-tertiary">{action.sublabel}</div>
                 </div>
               </button>
             )
@@ -93,30 +93,30 @@ export default function SearchBar({ onSearch, onQuickScan, isLoading }: SearchBa
       </div>
 
       {/* Example Queries */}
-      <div className="bg-surface-800/30 rounded-lg p-4">
-        <h4 className="text-sm font-medium text-surface-300 mb-3">Example Queries:</h4>
+      <div className="bg-terminal-surface/30 rounded-lg p-4">
+        <h4 className="text-sm font-medium text-text-tertiary mb-3">Example Queries:</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
           <button
             onClick={() => setQuery("Find me new Raydium pools with over 1000% APY and locked liquidity")}
-            className="text-left text-surface-400 hover:text-degen-primary transition-colors"
+            className="text-left text-text-tertiary hover:text-degen-primary transition-colors"
           >
             "Find me new Raydium pools with over 1000% APY and locked liquidity"
           </button>
           <button
             onClick={() => setQuery("Show me the riskiest degen plays on Solana right now")}
-            className="text-left text-surface-400 hover:text-degen-primary transition-colors"
+            className="text-left text-text-tertiary hover:text-degen-primary transition-colors"
           >
             "Show me the riskiest degen plays on Solana right now"
           </button>
           <button
             onClick={() => setQuery("What are the best BONK farming opportunities?")}
-            className="text-left text-surface-400 hover:text-degen-primary transition-colors"
+            className="text-left text-text-tertiary hover:text-degen-primary transition-colors"
           >
             "What are the best BONK farming opportunities?"
           </button>
           <button
             onClick={() => setQuery("Find pools less than 24 hours old with high sustainability")}
-            className="text-left text-surface-400 hover:text-degen-primary transition-colors"
+            className="text-left text-text-tertiary hover:text-degen-primary transition-colors"
           >
             "Find pools less than 24 hours old with high sustainability"
           </button>

@@ -272,11 +272,11 @@
   
   /* Loading States */
   .loading-skeleton {
-    @apply bg-surface-700 animate-pulse rounded;
+    @apply bg-terminal-accent animate-pulse rounded;
   }
   
   .loading-spinner {
-    @apply animate-spin rounded-full border-2 border-surface-600 border-t-degen-primary;
+    @apply animate-spin rounded-full border-2 border-terminal-border border-t-cyber-primary;
   }
   
   /* Enhanced Hover Effects */

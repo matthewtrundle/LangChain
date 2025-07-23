@@ -93,10 +93,10 @@ export default function Home() {
           <h1 className="text-5xl font-bold text-gradient mb-4">
             SolDegen
           </h1>
-          <p className="text-xl text-surface-400 max-w-2xl mx-auto">
+          <p className="text-xl text-text-secondary max-w-2xl mx-auto">
             Multi-agent AI system for discovering high-yield opportunities on Solana
           </p>
-          <div className="flex items-center justify-center gap-6 mt-6 text-sm text-surface-500">
+          <div className="flex items-center justify-center gap-6 mt-6 text-sm text-text-tertiary">
             <div className="flex items-center gap-2">
               <TrendingUpIcon className="w-4 h-4" />
               <span>Scanner Agent</span>
@@ -128,13 +128,13 @@ export default function Home() {
               <div className="card text-center">
                 <div className="flex flex-col items-center justify-center py-12">
                   <div className="loading-spinner w-12 h-12 mb-4" />
-                  <h3 className="text-xl font-semibold text-white mb-2">
+                  <h3 className="text-xl font-semibold text-text-primary mb-2">
                     Multi-Agent System Processing...
                   </h3>
-                  <p className="text-surface-400 mb-4">
+                  <p className="text-text-tertiary mb-4">
                     Agents are coordinating to find the best opportunities
                   </p>
-                  <div className="flex items-center gap-4 text-sm text-surface-500">
+                  <div className="flex items-center gap-4 text-sm text-text-tertiary">
                     <span>Scanner → Analyzer → Coordinator</span>
                   </div>
                 </div>
@@ -145,9 +145,9 @@ export default function Home() {
             {(agentResponse || scanStats) && !isLoading && (
               <div className="card-gradient">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold text-white">Agent Response</h2>
+                  <h2 className="text-2xl font-bold text-text-primary">Agent Response</h2>
                   {scanStats && (
-                    <div className="flex items-center gap-2 text-sm text-surface-400">
+                    <div className="flex items-center gap-2 text-sm text-text-tertiary">
                       <span>{scanStats.found} opportunities found</span>
                     </div>
                   )}
@@ -226,14 +226,14 @@ export default function Home() {
               <div className="card text-center py-16">
                 <div className="max-w-md mx-auto">
                   <div className="text-6xl mb-6 text-gradient">AI</div>
-                  <h3 className="text-2xl font-bold text-white mb-4">
+                  <h3 className="text-2xl font-bold text-text-primary mb-4">
                     Ready to Hunt Yields
                   </h3>
-                  <p className="text-surface-400 mb-6 leading-relaxed">
+                  <p className="text-text-tertiary mb-6 leading-relaxed">
                     Our multi-agent system is standing by to discover the best DeFi opportunities on Solana.
                     Ask in natural language or use the quick scan buttons.
                   </p>
-                  <div className="inline-flex items-center gap-2 text-sm text-surface-500 bg-surface-800/50 px-4 py-2 rounded-lg">
+                  <div className="inline-flex items-center gap-2 text-sm text-text-tertiary bg-terminal-surface/50 px-4 py-2 rounded-lg">
                     <span>Powered by LangChain & OpenAI</span>
                   </div>
                 </div>

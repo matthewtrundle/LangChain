@@ -39,7 +39,7 @@ export default function SystemStatus({ className }: SystemStatusProps) {
     return (
       <div className={`card ${className}`}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-white">System Status</h3>
+          <h3 className="text-lg font-semibold text-text-primary">System Status</h3>
           <div className="loading-spinner w-5 h-5" />
         </div>
         <div className="space-y-3">
@@ -56,7 +56,7 @@ export default function SystemStatus({ className }: SystemStatusProps) {
       <div className={`card border-degen-danger/50 ${className}`}>
         <div className="flex items-center gap-3 mb-4">
           <XCircleIcon className="text-degen-danger" />
-          <h3 className="text-lg font-semibold text-white">System Status</h3>
+          <h3 className="text-lg font-semibold text-text-primary">System Status</h3>
         </div>
         <div className="flex items-center gap-2 text-degen-danger">
           <AlertTriangleIcon className="w-4 h-4" />
@@ -72,7 +72,7 @@ export default function SystemStatus({ className }: SystemStatusProps) {
   return (
     <div className={`card ${isSystemHealthy ? 'border-degen-success/50' : 'border-degen-danger/50'} ${className}`}>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-white">Multi-Agent System</h3>
+        <h3 className="text-lg font-semibold text-text-primary">Multi-Agent System</h3>
         <div className="flex items-center gap-2">
           <div className={`status-dot ${isSystemHealthy ? 'status-online' : 'status-offline'}`} />
           <span className={`text-sm font-medium ${isSystemHealthy ? 'text-degen-success' : 'text-degen-danger'}`}>
@@ -84,15 +84,15 @@ export default function SystemStatus({ className }: SystemStatusProps) {
       <div className="space-y-4">
         {/* Agent Status */}
         {health?.agents && (
-          <div className="bg-surface-800/30 rounded-lg p-4">
+          <div className="bg-terminal-surface/30 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-3">
-              <ActivityIcon className="w-4 h-4 text-surface-400" />
-              <span className="text-sm font-medium text-surface-300">Agent Status</span>
+              <ActivityIcon className="w-4 h-4 text-text-tertiary" />
+              <span className="text-sm font-medium text-text-tertiary">Agent Status</span>
             </div>
             <div className="grid grid-cols-2 gap-3">
               {Object.entries(health.agents).map(([agent, status]) => (
                 <div key={agent} className="flex items-center justify-between">
-                  <span className="text-sm text-surface-400 capitalize">
+                  <span className="text-sm text-text-tertiary capitalize">
                     {agent.replace('_', ' ')}
                   </span>
                   <CheckCircleIcon className="w-4 h-4 text-degen-success" />
@@ -103,14 +103,14 @@ export default function SystemStatus({ className }: SystemStatusProps) {
         )}
 
         {/* API Keys Status */}
-        <div className="bg-surface-800/30 rounded-lg p-4">
+        <div className="bg-terminal-surface/30 rounded-lg p-4">
           <div className="flex items-center gap-2 mb-3">
-            <CheckCircleIcon className="w-4 h-4 text-surface-400" />
-            <span className="text-sm font-medium text-surface-300">API Configuration</span>
+            <CheckCircleIcon className="w-4 h-4 text-text-tertiary" />
+            <span className="text-sm font-medium text-text-tertiary">API Configuration</span>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-surface-400">Helius</span>
+              <span className="text-sm text-text-tertiary">Helius</span>
               <div className="flex items-center gap-1">
                 {health?.config?.has_helius_key ? (
                   <CheckCircleIcon className="w-4 h-4 text-degen-success" />
@@ -120,7 +120,7 @@ export default function SystemStatus({ className }: SystemStatusProps) {
               </div>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-surface-400">OpenAI</span>
+              <span className="text-sm text-text-tertiary">OpenAI</span>
               <div className="flex items-center gap-1">
                 {health?.config?.has_openai_key ? (
                   <CheckCircleIcon className="w-4 h-4 text-degen-success" />
@@ -134,7 +134,7 @@ export default function SystemStatus({ className }: SystemStatusProps) {
 
         {/* System Info */}
         <div className="border-t border-degen-border pt-4">
-          <div className="flex items-center justify-between text-xs text-surface-500">
+          <div className="flex items-center justify-between text-xs text-text-tertiary">
             <span>Environment: {health?.config?.environment || 'Unknown'}</span>
             <span>Version: 2.0.0</span>
           </div>
