@@ -80,8 +80,14 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-degen-bg">
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
+    <div className="min-h-screen bg-terminal-bg relative overflow-hidden">
+      {/* Animated background grid */}
+      <div className="fixed inset-0 opacity-30">
+        <div className="cyber-grid"></div>
+      </div>
+      
+      {/* Main container */}
+      <div className="relative z-10 container mx-auto px-6 py-12 max-w-8xl">
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-5xl font-bold text-gradient mb-4">
@@ -206,9 +212,10 @@ export default function Home() {
                   {pools.map((pool, index) => (
                     <div key={`${pool.pool_address}-${index}`} className="opportunity-card">
                       <OpportunityCard
-                      pool={pool}
-                      onAnalyze={handleAnalyze}
-                    />
+                        pool={pool}
+                        onAnalyze={handleAnalyze}
+                      />
+                    </div>
                   ))}
                 </div>
               </div>
