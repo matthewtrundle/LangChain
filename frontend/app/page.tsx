@@ -198,7 +198,7 @@ export default function Home() {
             )}
 
             {/* Enhanced Opportunities Grid */}
-            {pools.length > 0 && !isLoading && (
+            {pools && pools.length > 0 && !isLoading && (
               <div className="space-y-8">
                 <div className="flex items-center justify-between">
                   <h2 className="text-4xl font-bold text-text-primary flex items-center gap-4">
@@ -227,7 +227,7 @@ export default function Home() {
             )}
 
             {/* Empty State */}
-            {pools.length === 0 && !isLoading && !agentResponse && (
+            {(!pools || pools.length === 0) && !isLoading && !agentResponse && (
               <div className="card text-center py-16">
                 <div className="max-w-md mx-auto">
                   <div className="text-6xl mb-6 text-gradient">AI</div>

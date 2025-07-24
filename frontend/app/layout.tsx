@@ -7,6 +7,9 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'SolDegen - Solana Yield Hunter',
   description: 'AI-powered yield farming discovery for Solana DeFi',
+  icons: {
+    icon: '/favicon.svg',
+  },
 }
 
 export default function RootLayout({
