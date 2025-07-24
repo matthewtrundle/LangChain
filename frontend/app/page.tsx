@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { debugInfo } from '@/lib/debug'
 import { Pool, ScanResult, CoordinatorResponse } from '@/lib/types'
 import { apiClient } from '@/lib/api'
 import OpportunityCard from '@/components/OpportunityCard'
@@ -89,6 +90,12 @@ export default function Home() {
       
       {/* Main container */}
       <div className="relative z-10 container mx-auto px-6 py-12 max-w-8xl">
+        {/* Debug Info - Remove this after fixing */}
+        <div className="bg-red-900/20 border border-red-500 rounded p-4 mb-8 text-xs font-mono">
+          <p>Debug: API URL = {process.env.NEXT_PUBLIC_API_URL || 'NOT SET'}</p>
+          <p>Window location = {typeof window !== 'undefined' ? window.location.origin : 'SSR'}</p>
+        </div>
+
         {/* Enhanced Header */}
         <header className="mb-16">
           <div className="text-center space-y-6">
