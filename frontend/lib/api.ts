@@ -1,6 +1,8 @@
 import { ScanResult, AgentResponse, CoordinatorResponse } from './types'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+// Temporarily hardcode to test
+const API_BASE_URL = 'https://langchain-production-881c.up.railway.app'
+// const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 export class ApiClient {
   private baseUrl: string
@@ -81,5 +83,5 @@ export class ApiClient {
   }
 }
 
-// Create client with environment variable
-export const apiClient = new ApiClient(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000')
+// Create client with hardcoded URL for now
+export const apiClient = new ApiClient('https://langchain-production-881c.up.railway.app')
