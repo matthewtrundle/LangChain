@@ -120,9 +120,9 @@ export default function SystemStatus({ className }: SystemStatusProps) {
               </div>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-text-tertiary">OpenAI</span>
+              <span className="text-sm text-text-tertiary">OpenRouter</span>
               <div className="flex items-center gap-1">
-                {health?.config?.has_openai_key ? (
+                {health?.config?.has_openrouter_key ? (
                   <CheckCircleIcon className="w-4 h-4 text-degen-success" />
                 ) : (
                   <XCircleIcon className="w-4 h-4 text-degen-danger" />
