@@ -182,7 +182,7 @@ export default function Home() {
                   </div>
                 )}
                 
-                {scanStats && (
+                {scanStats && scanStats.sources && (
                   <div className="flex items-center gap-3 text-terminal text-xs">
                     <span className="uppercase tracking-widest">DATA SOURCES:</span>
                     <div className="flex items-center gap-2">
