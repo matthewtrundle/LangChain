@@ -219,58 +219,46 @@ export default function AgentFlowVisualizer({ isProcessing, currentPhase }: Agen
             
             {dataFlow.scannerToAnalyzer && (
               <g className="animate-pulse">
-                <path
-                  d="M 25% 50% L 45% 50%"
+                <line
+                  x1="200" y1="80" x2="350" y2="80"
                   stroke="#00ff88"
                   strokeWidth="2"
-                  fill="none"
                   markerEnd="url(#arrowhead)"
                   className="animate-slide-right"
                 />
-                <circle r="4" fill="#00ff88" className="animate-slide-right">
-                  <animateMotion dur="1s" repeatCount="indefinite">
-                    <mpath href="#flow1" />
-                  </animateMotion>
+                <circle r="4" fill="#00ff88">
+                  <animateMotion dur="1s" repeatCount="indefinite" path="M 200 80 L 350 80" />
                 </circle>
-                <path id="flow1" d="M 25% 50% L 45% 50%" stroke="none" />
               </g>
             )}
 
             {/* Analyzer to Coordinator */}
             {dataFlow.analyzerToCoordinator && (
               <g className="animate-pulse">
-                <path
-                  d="M 50% 50% L 70% 50%"
+                <line
+                  x1="400" y1="80" x2="550" y2="80"
                   stroke="#00ff88"
                   strokeWidth="2"
-                  fill="none"
                   markerEnd="url(#arrowhead)"
                 />
                 <circle r="4" fill="#00ff88">
-                  <animateMotion dur="1s" repeatCount="indefinite">
-                    <mpath href="#flow2" />
-                  </animateMotion>
+                  <animateMotion dur="1s" repeatCount="indefinite" path="M 400 80 L 550 80" />
                 </circle>
-                <path id="flow2" d="M 50% 50% L 70% 50%" stroke="none" />
               </g>
             )}
 
             {/* Monitor to Coordinator */}
             {dataFlow.monitorToCoordinator && (
               <g className="animate-pulse">
-                <path
-                  d="M 50% 80% L 75% 65%"
+                <line
+                  x1="400" y1="130" x2="580" y2="100"
                   stroke="#00ff88"
                   strokeWidth="2"
-                  fill="none"
                   markerEnd="url(#arrowhead)"
                 />
                 <circle r="4" fill="#00ff88">
-                  <animateMotion dur="1s" repeatCount="indefinite">
-                    <mpath href="#flow3" />
-                  </animateMotion>
+                  <animateMotion dur="1s" repeatCount="indefinite" path="M 400 130 L 580 100" />
                 </circle>
-                <path id="flow3" d="M 50% 80% L 75% 65%" stroke="none" />
               </g>
             )}
           </svg>

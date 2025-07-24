@@ -81,4 +81,5 @@ export class ApiClient {
   }
 }
 
-export const apiClient = new ApiClient()
+// Create client with environment variable
+export const apiClient = new ApiClient(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000')
