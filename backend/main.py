@@ -17,7 +17,12 @@ app = FastAPI(title="Solana Degen Hunter Multi-Agent API", version="2.0.0")
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Next.js dev server
+    allow_origins=[
+        "http://localhost:3000",  # Next.js dev server
+        "https://*.up.railway.app",  # Railway deployments
+        "https://*.railway.app",  # Railway deployments
+        "*"  # Allow all origins for now (you can restrict this later)
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

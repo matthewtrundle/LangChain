@@ -1,14 +1,25 @@
 import { ScanResult, AgentResponse, CoordinatorResponse } from './types'
 
-// Temporarily hardcode to test
-const API_BASE_URL = 'https://langchain-production-881c.up.railway.app'
-// const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+// Get API URL from environment variable or use default
+const getApiUrl = () => {
+  // In production, use the environment variable
+  if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL
+  }
+  
+  // Fallback to the Railway backend URL if env var not available
+  return 'https://langchain-production-881c.up.railway.app'
+}
+
+const API_BASE_URL = getApiUrl()
 
 export class ApiClient {
   private baseUrl: string
 
   constructor(baseUrl: string = API_BASE_URL) {
-    this.baseUrl = baseUrl
+    // Ensure URL doesn't have trailing slash
+    this.baseUrl = baseUrl.replace(/\/$/, '')
+    console.log('API Client initialized with URL:', this.baseUrl)
   }
 
   async hunt(query: string): Promise<CoordinatorResponse> {
@@ -83,5 +94,5 @@ export class ApiClient {
   }
 }
 
-// Create client with hardcoded URL for now
-export const apiClient = new ApiClient('https://langchain-production-881c.up.railway.app')
+// Create client with API URL
+export const apiClient = new ApiClient()

@@ -1,13 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: 'http://localhost:8000/:path*',
-      },
-    ]
-  },
+  // Remove the hardcoded rewrites for production
+  // Environment variables should handle API URLs
 }
 
 module.exports = nextConfig
