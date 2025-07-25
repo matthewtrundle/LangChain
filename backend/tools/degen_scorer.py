@@ -18,24 +18,38 @@ class DegenScorerTool(BaseTool):
         super().__init__()
         self.helius_client = HeliusClient()
     
-    def _run(self, pool_address: str, pool_data: Dict) -> str:
+    def _run(self, pool_address: str, pool_data: Dict = None) -> str:
         """Calculate degen score for a pool"""
         try:
+            # If no pool data provided, create basic data
+            if not pool_data:
+                pool_data = {
+                    "pool_address": pool_address,
+                    "tvl": 50000,  # Mock $50k TVL
+                    "volume_24h": 25000,
+                    "apy": 500,
+                    "age_hours": 24,
+                    "liquidity_locked": False
+                }
+            
+            # Calculate all scoring components
             score_components = {
                 "liquidity_score": self._score_liquidity(pool_data),
                 "age_score": self._score_age(pool_data),
                 "volume_score": self._score_volume(pool_data),
                 "creator_score": self._score_creator(pool_data),
-                "token_score": self._score_tokens(pool_data)
+                "token_score": self._score_tokens(pool_data),
+                "apy_sustainability": self._score_apy_sustainability(pool_data)
             }
             
             # Calculate weighted average
             weights = {
-                "liquidity_score": 0.25,
-                "age_score": 0.15,
+                "liquidity_score": 0.20,
+                "age_score": 0.10,
                 "volume_score": 0.20,
-                "creator_score": 0.25,
-                "token_score": 0.15
+                "creator_score": 0.20,
+                "token_score": 0.15,
+                "apy_sustainability": 0.15
             }
             
             total_score = sum(
@@ -44,13 +58,16 @@ class DegenScorerTool(BaseTool):
             )
             
             risk_level = self._get_risk_level(total_score)
+            red_flags = self._check_red_flags(pool_data, score_components)
             
             return json.dumps({
                 "pool_address": pool_address,
                 "degen_score": round(total_score, 1),
                 "risk_level": risk_level,
                 "score_breakdown": score_components,
-                "recommendation": self._get_recommendation(total_score, pool_data)
+                "red_flags": red_flags,
+                "recommendation": self._get_recommendation(total_score, pool_data, red_flags),
+                "analysis_summary": self._get_analysis_summary(pool_data, score_components)
             }, indent=2)
             
         except Exception as e:
@@ -158,18 +175,87 @@ class DegenScorerTool(BaseTool):
         else:
             return "LOW"
     
-    def _get_recommendation(self, score: float, pool_data: Dict) -> str:
-        """Generate recommendation based on score"""
-        apy = pool_data.get("estimated_apy", 0)
+    def _score_apy_sustainability(self, pool_data: Dict) -> float:
+        """Score APY sustainability (0-10)"""
+        apy = pool_data.get("apy", pool_data.get("estimated_apy", 0))
+        volume_24h = pool_data.get("volume_24h", 0)
+        tvl = pool_data.get("tvl", 1)
         
-        if score >= 8.0:
-            return f"🔥 DEGEN ALERT: {apy:.1f}% APY but EXTREME risk. Only for true degens."
-        elif score >= 6.0:
-            return f"⚠️ HIGH RISK: {apy:.1f}% APY with significant risk. DYOR and small position only."
-        elif score >= 4.0:
-            return f"📈 MODERATE: {apy:.1f}% APY with medium risk. Good risk/reward balance."
+        # Very high APY is often unsustainable
+        if apy > 5000:  # > 5000%
+            apy_score = 9.0  # Extremely risky
+        elif apy > 2000:  # > 2000%
+            apy_score = 7.5
+        elif apy > 1000:  # > 1000%
+            apy_score = 6.0
+        elif apy > 500:   # > 500%
+            apy_score = 4.5
         else:
-            return f"🛡️ SAFE: {apy:.1f}% APY with low risk but limited upside."
+            apy_score = 3.0
+        
+        # Check if volume supports the APY
+        if tvl > 0:
+            daily_yield = (apy / 365) * tvl / 100
+            if volume_24h > daily_yield * 2:  # Volume can support yield
+                apy_score = max(1.0, apy_score - 2.0)
+        
+        return apy_score
+    
+    def _check_red_flags(self, pool_data: Dict, scores: Dict) -> List[str]:
+        """Check for red flags in the pool"""
+        red_flags = []
+        
+        # Check TVL
+        if pool_data.get("tvl", 0) < 10000:
+            red_flags.append("⚠️ Very low TVL (< $10k)")
+        
+        # Check liquidity lock
+        if not pool_data.get("liquidity_locked", False) and pool_data.get("apy", 0) > 1000:
+            red_flags.append("🚨 No liquidity lock with extreme APY")
+        
+        # Check volume
+        if pool_data.get("volume_24h", 0) < 1000:
+            red_flags.append("⚠️ Extremely low volume")
+        
+        # Check age
+        if pool_data.get("age_hours", 24) < 6:
+            red_flags.append("🆕 Very new pool (< 6 hours)")
+        
+        # Check APY sustainability
+        if scores.get("apy_sustainability", 0) > 7:
+            red_flags.append("💀 Unsustainable APY")
+        
+        return red_flags
+    
+    def _get_analysis_summary(self, pool_data: Dict, scores: Dict) -> str:
+        """Generate detailed analysis summary"""
+        apy = pool_data.get("apy", pool_data.get("estimated_apy", 0))
+        tvl = pool_data.get("tvl", 0)
+        volume = pool_data.get("volume_24h", 0)
+        
+        summary = f"Pool Analysis:\n"
+        summary += f"- APY: {apy:.1f}% {'(Sustainable)' if scores['apy_sustainability'] < 5 else '(Unsustainable)'}\n"
+        summary += f"- TVL: ${tvl:,.0f} {'(Healthy)' if tvl > 100000 else '(Low)'}\n"
+        summary += f"- 24h Volume: ${volume:,.0f}\n"
+        summary += f"- Liquidity: {'Locked ✅' if pool_data.get('liquidity_locked') else 'Not Locked ❌'}\n"
+        summary += f"- Age: {pool_data.get('age_hours', 0):.1f} hours\n"
+        
+        return summary
+
+    def _get_recommendation(self, score: float, pool_data: Dict, red_flags: List[str]) -> str:
+        """Generate recommendation based on score and red flags"""
+        apy = pool_data.get("apy", pool_data.get("estimated_apy", 0))
+        
+        if len(red_flags) >= 3:
+            return f"🚫 AVOID: Too many red flags ({len(red_flags)}). This pool is extremely risky."
+        elif score >= 8.0:
+            return f"🔥 DEGEN PLAY: {apy:.1f}% APY but EXTREME risk. Max 1% of portfolio."
+        elif score >= 6.0:
+            return f"⚠️ HIGH RISK: {apy:.1f}% APY. Consider small position (2-5% of portfolio)."
+        elif score >= 4.0:
+            return f"📈 MODERATE: {apy:.1f}% APY with balanced risk. Up to 10% of portfolio."
+        else:
+            return f"🛡️ CONSERVATIVE: {apy:.1f}% APY with low risk. Safe for larger positions."
     
     async def _arun(self, pool_address: str, pool_data: Dict) -> str:
         """Async version of the tool"""

@@ -9,6 +9,7 @@ import OpportunityCard from '@/components/OpportunityCard'
 import SearchBar from '@/components/SearchBar'
 import SystemStatus from '@/components/SystemStatus'
 import AgentFlowVisualizer from '@/components/AgentFlowVisualizer'
+import AnalysisModal from '@/components/AnalysisModal'
 import { TrendingUpIcon, ActivityIcon, DatabaseIcon } from '@/components/icons/Icons'
 
 export default function Home() {
@@ -17,6 +18,12 @@ export default function Home() {
   const [lastQuery, setLastQuery] = useState('')
   const [agentResponse, setAgentResponse] = useState('')
   const [scanStats, setScanStats] = useState<{ found: number; sources: string[] } | null>(null)
+  const [analysisModal, setAnalysisModal] = useState({
+    isOpen: false,
+    poolAddress: '',
+    result: '',
+    scoreData: null as any
+  })
 
   const handleSearch = async (query: string) => {
     setIsLoading(true)
@@ -92,13 +99,23 @@ export default function Home() {
         // Extract key information from the analysis
         const analysisText = response.result || 'Analysis complete'
         
-        // For now, show in an alert - in production would use a modal
-        alert(`🔍 Analysis Results for ${poolAddress}:\n\n${analysisText}`)
+        // Show in modal
+        setAnalysisModal({
+          isOpen: true,
+          poolAddress: poolAddress,
+          result: analysisText,
+          scoreData: response.score_data || null
+        })
         
         // You could also update the pool data with risk scores
         // setPools(pools.map(p => p.pool_address === poolAddress ? {...p, analyzed: true} : p))
       } else {
-        alert('Analysis failed: ' + (response.error || 'Unknown error'))
+        setAnalysisModal({
+          isOpen: true,
+          poolAddress: poolAddress,
+          result: 'Analysis failed: ' + (response.error || 'Unknown error'),
+          scoreData: null
+        })
       }
     } catch (error) {
       console.error('Analysis failed:', error)
@@ -277,6 +294,15 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* Analysis Modal */}
+      <AnalysisModal
+        isOpen={analysisModal.isOpen}
+        onClose={() => setAnalysisModal({ ...analysisModal, isOpen: false })}
+        poolAddress={analysisModal.poolAddress}
+        analysisResult={analysisModal.result}
+        scoreData={analysisModal.scoreData}
+      />
     </div>
   )
 }
