@@ -14,7 +14,7 @@ const getApiUrl = () => {
 const API_BASE_URL = getApiUrl()
 
 export class ApiClient {
-  private baseUrl: string
+  public baseUrl: string
 
   constructor(baseUrl: string = API_BASE_URL) {
     // Ensure URL doesn't have trailing slash
@@ -96,3 +96,21 @@ export class ApiClient {
 
 // Create client with API URL
 export const apiClient = new ApiClient()
+
+// Export a helper function for components that need to fetch directly
+export const fetchWithConfig = async (path: string, options: RequestInit = {}) => {
+  const url = `${apiClient.baseUrl}${path}`
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  })
+  
+  if (!response.ok) {
+    throw new Error(`Request failed: ${response.statusText}`)
+  }
+  
+  return response.json()
+}
