@@ -128,45 +128,17 @@ class RealPoolScannerTool(BaseTool):
             return self._get_defi_llama_fallback(min_apy)
     
     def _get_defi_llama_fallback(self, min_apy: float) -> List[Dict]:
-        """Fallback mock data when DeFiLlama API is unavailable"""
-        return [
-            {
-                "pool_address": "DeFiLlama_Mock_7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
-                "protocol": "raydium",
-                "token_symbols": "BONK/USDC",
-                "apy": 847.5,
-                "tvl": 1200000,
-                "volume_24h": 89000,
-                "age_days": 0.5,
-                "source": "DeFiLlama_FALLBACK",
-                "real_data": False
-            }
-        ]
+        """Return empty when DeFiLlama API is unavailable"""
+        print("[RealPoolScanner] DeFiLlama API unavailable, no fallback data")
+        return []
     
     def _get_new_pools_from_helius(self) -> List[Dict]:
         """Get new pools from Helius transaction monitoring"""
         try:
-            # Get recent transactions from Raydium
-            raydium_program = "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8"
-            
-            # This would be real Helius API call
-            # For now, simulate with realistic data structure
-            new_pools = [
-                {
-                    "pool_address": "HeliusDiscovered_7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
-                    "protocol": "raydium",
-                    "token_symbols": "BONK/USDC",
-                    "apy": 1247.5,  # Would calculate from fees/volume
-                    "tvl": 890000,
-                    "volume_24h": 125000,
-                    "age_days": 0.1,  # Brand new
-                    "source": "Helius_Live",
-                    "real_data": True,
-                    "liquidity_locked": True
-                }
-            ]
-            
-            return new_pools
+            # For now, return empty since Helius integration requires more setup
+            # TODO: Implement real Helius monitoring for new pool creation events
+            print("[RealPoolScanner] Helius integration not yet implemented")
+            return []
             
         except Exception as e:
             print(f"Error getting Helius pools: {e}")
@@ -199,20 +171,37 @@ class RealPoolScannerTool(BaseTool):
     def _get_jupiter_prices(self, pool: Dict) -> Dict:
         """Get token prices from Jupiter (FREE)"""
         try:
-            # TODO: USER - Real Jupiter API call (FREE)
-            # Extract token mints from pool data and get prices
+            # Extract token mints
+            token_a_mint = pool.get("token_a_mint", "")
+            token_b_mint = pool.get("token_b_mint", "")
             
-            # Example: For SOL price
-            # response = requests.get("https://price.jup.ag/v4/price?ids=So11111111111111111111111111111111111111112")
-            # sol_price = response.json()["data"]["So11111111111111111111111111111111111111112"]["price"]
+            # Skip if no mints available
+            if not token_a_mint and not token_b_mint:
+                return {"error": "No token mints available"}
             
-            # Mock implementation for now
-            return {
-                "token_a_price": 0.025,
-                "token_b_price": 1.00,
-                "price_source": "Jupiter_API",
-                "real_data": False  # Set to True when real API is connected
-            }
+            # Build mint list
+            mints = []
+            if token_a_mint:
+                mints.append(token_a_mint)
+            if token_b_mint and token_b_mint != token_a_mint:
+                mints.append(token_b_mint)
+            
+            # Jupiter Price API v6
+            url = f"https://price.jup.ag/v6/price?ids={','.join(mints)}"
+            response = requests.get(url, timeout=5)
+            
+            if response.status_code == 200:
+                data = response.json()
+                prices = data.get("data", {})
+                
+                return {
+                    "token_a_price": prices.get(token_a_mint, {}).get("price", 0) if token_a_mint else 0,
+                    "token_b_price": prices.get(token_b_mint, {}).get("price", 0) if token_b_mint else 0,
+                    "price_source": "Jupiter_API",
+                    "real_data": True
+                }
+            else:
+                return {"error": f"Jupiter API error: {response.status_code}"}
         except Exception as e:
             print(f"Error getting Jupiter prices: {e}")
             return {"error": str(e)}
@@ -220,22 +209,65 @@ class RealPoolScannerTool(BaseTool):
     def _get_coingecko_data(self, pool: Dict) -> Dict:
         """Get additional data from CoinGecko (FREE)"""
         try:
-            # TODO: USER - Real CoinGecko API call (FREE tier: 5000 calls/month)
-            # Get token IDs from pool and fetch market data
-            
-            # Example for SOL:
-            # headers = {"x-cg-demo-api-key": Config.COINGECKO_API_KEY} if Config.COINGECKO_API_KEY else {}
-            # response = requests.get("https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd&include_24hr_change=true", headers=headers)
-            # data = response.json()
-            
-            # Mock implementation for now
-            return {
-                "market_cap": 1000000,
-                "volume_24h": 500000,
-                "price_change_24h": -5.2,
-                "data_source": "CoinGecko_API",
-                "real_data": False  # Set to True when real API is connected
+            # Map common Solana tokens to CoinGecko IDs
+            token_to_coingecko = {
+                "SOL": "solana",
+                "USDC": "usd-coin",
+                "USDT": "tether",
+                "BONK": "bonk",
+                "WIF": "dogwifhat",
+                "JUP": "jupiter-exchange-solana",
+                "PYTH": "pyth-network",
+                "JTO": "jito-governance-token",
+                "RNDR": "render-token"
             }
+            
+            # Get token symbols
+            token_a = pool.get("token_a", pool.get("token_symbols", "").split("-")[0] if pool.get("token_symbols") else "")
+            token_b = pool.get("token_b", pool.get("token_symbols", "").split("-")[1] if pool.get("token_symbols") and "-" in pool.get("token_symbols") else "")
+            
+            # Find CoinGecko IDs
+            coingecko_ids = []
+            for token in [token_a, token_b]:
+                if token in token_to_coingecko:
+                    coingecko_ids.append(token_to_coingecko[token])
+            
+            if not coingecko_ids:
+                return {"error": "No known tokens for CoinGecko"}
+            
+            # CoinGecko free API
+            ids_str = ",".join(coingecko_ids)
+            url = f"https://api.coingecko.com/api/v3/simple/price?ids={ids_str}&vs_currencies=usd&include_market_cap=true&include_24hr_vol=true&include_24hr_change=true"
+            
+            response = requests.get(url, timeout=5)
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                # Aggregate data from all tokens
+                total_market_cap = 0
+                total_volume = 0
+                avg_price_change = 0
+                count = 0
+                
+                for coin_id in coingecko_ids:
+                    if coin_id in data:
+                        coin_data = data[coin_id]
+                        total_market_cap += coin_data.get("usd_market_cap", 0)
+                        total_volume += coin_data.get("usd_24h_vol", 0)
+                        if "usd_24h_change" in coin_data:
+                            avg_price_change += coin_data["usd_24h_change"]
+                            count += 1
+                
+                return {
+                    "market_cap": total_market_cap,
+                    "volume_24h": total_volume,
+                    "price_change_24h": avg_price_change / count if count > 0 else 0,
+                    "data_source": "CoinGecko_API",
+                    "real_data": True
+                }
+            else:
+                return {"error": f"CoinGecko API error: {response.status_code}"}
         except Exception as e:
             print(f"Error getting CoinGecko data: {e}")
             return {"error": str(e)}

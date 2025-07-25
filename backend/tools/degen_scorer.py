@@ -135,17 +135,14 @@ class DegenScorerTool(BaseTool):
         """Score based on pool creator analysis (0-10)"""
         creator = pool_data.get("creator", "")
         
-        # In production, we'd analyze creator's history
-        # For now, return a mock score
-        known_good_creators = ["4xZ7...9qWx"]  # Mock whitelist
-        known_bad_creators = ["8xZ7...1qWx"]   # Mock blacklist
+        # Without Helius integration to check creator history,
+        # we give a neutral score for all creators
+        # TODO: Implement real creator analysis with Helius API
         
-        if creator in known_good_creators:
-            return 8.0
-        elif creator in known_bad_creators:
-            return 2.0
+        if not creator:
+            return 3.0  # No creator info is suspicious
         else:
-            return 5.0  # Unknown creator
+            return 5.0  # Neutral score for unknown creators
     
     def _score_tokens(self, pool_data: Dict) -> float:
         """Score based on token analysis (0-10)"""

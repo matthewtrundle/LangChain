@@ -92,6 +92,33 @@ async def hunt_yields(request: HuntRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/scan/raydium")
+async def scan_raydium(request: ScanRequest):
+    """Scan Raydium for pools with REAL Solana addresses"""
+    try:
+        from tools.raydium_scanner import RadiumScannerTool
+        raydium_scanner = RadiumScannerTool()
+        
+        # Run Raydium scan
+        result = raydium_scanner._run(
+            min_apy=request.min_apy,
+            min_tvl=10000  # Minimum $10k TVL
+        )
+        
+        # Parse result
+        scan_data = json.loads(result)
+        
+        return {
+            "source": "Raydium Direct",
+            "found_pools": scan_data.get("found_pools", 0),
+            "pools": scan_data.get("pools", []),
+            "scan_time": scan_data.get("scan_time"),
+            "data_sources": ["Raydium API"],
+            "real_addresses": True
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/scan")
 async def scan_opportunities(request: ScanRequest):
     """Direct scanner agent access"""
@@ -286,15 +313,76 @@ async def check_positions():
         # Check rate limit
         check_api_limit("/api/monitor/check")
         
+        # Update all positions with real data
+        position_manager.update_all_positions()
+        
         # Use enhanced monitor
         result = enhanced_monitor.monitor_all_positions()
-        
-        # Also run position updates
-        position_manager.simulate_position_updates()
         
         return result
     except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/performance")
+async def get_performance_metrics():
+    """Get detailed performance metrics with real pool data"""
+    try:
+        # Update positions with latest data
+        position_manager.update_all_positions()
+        
+        # Get position summary
+        summary = position_manager.get_position_summary()
+        
+        # Get active positions with current metrics
+        active_positions = []
+        for pos in position_manager.get_active_positions():
+            # Get real-time pool data
+            current_metrics = position_manager._fetch_real_pool_metrics(pos.pool_address)
+            
+            active_positions.append({
+                "position_id": pos.id,
+                "pool": pos.pool_data.get("token_symbols", "Unknown"),
+                "pool_address": pos.pool_address,
+                "entry_time": pos.entry_time.isoformat(),
+                "hours_held": (datetime.now() - pos.entry_time).total_seconds() / 3600,
+                "entry_amount": pos.entry_amount,
+                "current_value": pos.current_value,
+                "pnl_amount": pos.pnl_amount,
+                "pnl_percent": pos.pnl_percent,
+                "entry_apy": pos.entry_apy,
+                "current_apy": current_metrics.get("apy", pos.current_apy),
+                "current_tvl": current_metrics.get("tvl", 0),
+                "current_volume": current_metrics.get("volume_24h", 0),
+                "rewards_earned": pos.rewards_earned,
+                "gas_spent": pos.gas_spent
+            })
+        
+        # Get historical performance
+        historical_positions = []
+        for pos in position_manager.position_history:
+            historical_positions.append({
+                "position_id": pos.id,
+                "pool": pos.pool_data.get("token_symbols", "Unknown"),
+                "entry_time": pos.entry_time.isoformat(),
+                "exit_time": pos.exit_time.isoformat() if pos.exit_time else None,
+                "hours_held": pos.hours_held,
+                "entry_amount": pos.entry_amount,
+                "exit_value": pos.current_value,
+                "pnl_amount": pos.pnl_amount,
+                "pnl_percent": pos.pnl_percent,
+                "exit_reason": pos.exit_reason.value if pos.exit_reason else None
+            })
+        
+        return {
+            "summary": summary.dict(),
+            "active_positions": active_positions,
+            "historical_positions": historical_positions,
+            "wallet_balance": position_manager.wallet.get_balance(),
+            "total_gas_spent": sum(p.gas_spent for p in position_manager.positions.values()),
+            "last_update": datetime.now().isoformat()
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

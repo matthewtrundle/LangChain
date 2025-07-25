@@ -1,6 +1,7 @@
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime, timedelta
 import json
+import requests
 from models.position import Position, PositionStatus, ExitReason, PositionSummary
 from .wallet_service import get_wallet, TransactionType
 
@@ -80,11 +81,15 @@ class PositionManager:
         
         return position
     
-    def update_position(self, position_id: str, current_metrics: Dict) -> Position:
+    def update_position(self, position_id: str, current_metrics: Dict = None) -> Position:
         """Update position with current metrics"""
         position = self.positions.get(position_id)
         if not position:
             raise ValueError(f"Position {position_id} not found")
+        
+        # If no metrics provided, fetch real data
+        if current_metrics is None:
+            current_metrics = self._fetch_real_pool_metrics(position.pool_address)
         
         # Calculate time elapsed
         hours_elapsed = (datetime.now() - position.entry_time).total_seconds() / 3600
@@ -92,9 +97,18 @@ class PositionManager:
         # Update APY
         position.current_apy = current_metrics.get("apy", position.current_apy)
         
+        # Calculate current value based on APY earnings
+        # This simulates LP token appreciation from fees
+        daily_rate = position.current_apy / 365 / 100
+        days_elapsed = hours_elapsed / 24
+        earned_multiplier = 1 + (daily_rate * days_elapsed)
+        
+        # Apply any price changes (for non-stable pairs)
+        price_multiplier = current_metrics.get("price_change", 1.0)
+        
         # Calculate current value
-        current_price = current_metrics.get("price", 1.0) * position.entry_price
-        position.calculate_current_value(current_price, hours_elapsed)
+        position.current_value = position.entry_amount * earned_multiplier * price_multiplier
+        position.calculate_current_value(price_multiplier, hours_elapsed)
         
         # Check exit conditions
         should_exit, exit_reason = position.should_exit(current_metrics)
@@ -190,32 +204,57 @@ class PositionManager:
             average_apy=avg_apy
         )
     
-    def simulate_position_updates(self):
-        """Simulate position value changes (for demo)"""
-        import random
-        
+    def _fetch_real_pool_metrics(self, pool_address: str) -> Dict[str, Any]:
+        """Fetch real-time pool metrics from Raydium"""
+        try:
+            # Skip if it's a UUID (DeFiLlama pools)
+            if "-" in pool_address and len(pool_address) == 36:
+                return {}
+            
+            response = requests.get("https://api.raydium.io/v2/main/pairs", timeout=5)
+            if response.status_code == 200:
+                pools = response.json()
+                
+                for pool in pools:
+                    if pool.get("ammId") == pool_address:
+                        # Calculate current APY
+                        liquidity = float(pool.get("liquidity", 0))
+                        volume_24h = float(pool.get("volume24h", 0))
+                        
+                        if liquidity > 0:
+                            daily_fees = volume_24h * 0.0025
+                            daily_yield = (daily_fees / liquidity) * 100
+                            current_apy = daily_yield * 365
+                        else:
+                            current_apy = 0
+                        
+                        # Calculate price change (simplified - comparing to 24h ago)
+                        price = float(pool.get("price", 1.0))
+                        price_24h_ago = float(pool.get("price24h", price))
+                        price_change = price / price_24h_ago if price_24h_ago > 0 else 1.0
+                        
+                        return {
+                            "apy": current_apy,
+                            "tvl": liquidity,
+                            "volume_24h": volume_24h,
+                            "price": price,
+                            "price_change": price_change,
+                            "rug_risk": liquidity < 10000  # Simple risk check
+                        }
+                        
+            return {}
+        except Exception as e:
+            print(f"[PositionManager] Error fetching pool metrics: {e}")
+            return {}
+    
+    def update_all_positions(self):
+        """Update all active positions with real data"""
         for position in self.get_active_positions():
-            # Simulate price changes (-5% to +5%)
-            price_change = 1 + random.uniform(-0.05, 0.05)
-            
-            # Simulate APY changes
-            apy_change = random.uniform(-20, 20)  # +/- 20% change
-            new_apy = max(0, position.current_apy * (1 + apy_change / 100))
-            
-            # Simulate TVL changes
-            tvl = position.pool_data.get("tvl", 100000)
-            tvl_change = random.uniform(-10, 10)  # +/- 10% change
-            new_tvl = max(1000, tvl * (1 + tvl_change / 100))
-            
-            # Update position
-            current_metrics = {
-                "apy": new_apy,
-                "tvl": new_tvl,
-                "rug_risk": random.random() < 0.01,  # 1% chance of rug risk
-                "price": price_change
-            }
-            
-            self.update_position(position.id, current_metrics)
+            try:
+                self.update_position(position.id)
+                print(f"[PositionManager] Updated position {position.id} - Current value: ${position.current_value:.2f}")
+            except Exception as e:
+                print(f"[PositionManager] Error updating position {position.id}: {e}")
     
     def check_exit_conditions(self, position: Position):
         """Check if position should be exited"""

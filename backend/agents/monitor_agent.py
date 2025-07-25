@@ -3,6 +3,7 @@ from agents.base_agent import BaseAgent
 from tools.helius_client import HeliusClient
 from datetime import datetime, timedelta
 import json
+import requests
 
 class MonitorAgent(BaseAgent):
     """Specialized agent for monitoring existing positions and market changes"""
@@ -126,10 +127,14 @@ Communication style:
         position_id = position["position_id"]
         pool_data = position["pool_data"]
         entry_apy = position["entry_apy"]
+        pool_address = pool_data.get("pool_address", "")
         
-        # Simulate current pool data (in production, would fetch from Helius)
-        current_apy = entry_apy * 0.85  # Mock 15% APY decrease
-        current_tvl = pool_data.get("tvl", 0) * 0.9  # Mock 10% TVL decrease
+        # Fetch current pool data from Raydium API
+        current_pool_data = self._fetch_current_pool_data(pool_address)
+        
+        # Use real data or fallback to entry data if fetch fails
+        current_apy = current_pool_data.get("apy", entry_apy)
+        current_tvl = current_pool_data.get("tvl", pool_data.get("tvl", 0))
         
         alerts = []
         
@@ -234,3 +239,45 @@ Communication style:
             "analysis": result.get("result", ""),
             "scan_time": datetime.now().isoformat()
         }
+    
+    def _fetch_current_pool_data(self, pool_address: str) -> Dict[str, Any]:
+        """Fetch current pool data from Raydium API"""
+        try:
+            # If it's a DeFiLlama UUID, we can't fetch real data
+            if "-" in pool_address and len(pool_address) == 36:
+                print(f"[MonitorAgent] Skipping UUID pool address: {pool_address}")
+                return {}
+            
+            # Fetch from Raydium API
+            response = requests.get("https://api.raydium.io/v2/main/pairs", timeout=5)
+            if response.status_code == 200:
+                pools = response.json()
+                
+                # Find the specific pool
+                for pool in pools:
+                    if pool.get("ammId") == pool_address:
+                        # Calculate current APY from volume and liquidity
+                        liquidity = float(pool.get("liquidity", 0))
+                        volume_24h = float(pool.get("volume24h", 0))
+                        
+                        if liquidity > 0:
+                            daily_fees = volume_24h * 0.0025  # 0.25% fee
+                            daily_yield = (daily_fees / liquidity) * 100
+                            current_apy = daily_yield * 365
+                        else:
+                            current_apy = 0
+                        
+                        return {
+                            "apy": current_apy,
+                            "tvl": liquidity,
+                            "volume_24h": volume_24h,
+                            "price": float(pool.get("price", 0)),
+                            "last_update": datetime.now().isoformat()
+                        }
+            
+            print(f"[MonitorAgent] Pool {pool_address} not found in Raydium data")
+            return {}
+            
+        except Exception as e:
+            print(f"[MonitorAgent] Error fetching pool data: {str(e)}")
+            return {}

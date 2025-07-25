@@ -54,84 +54,16 @@ class PoolScannerTool(BaseTool):
         return protocol_pools
     
     def _scan_raydium(self, min_apy: float, max_age_hours: int) -> List[Dict]:
-        """Scan Raydium for new pools"""
-        pools = []
-        
-        try:
-            # Get recent transactions from Raydium program
-            program_id = PROGRAM_IDS["RAYDIUM_AMM"]
-            
-            # This is a simplified version - in production we'd parse actual transactions
-            # For now, return mock data that demonstrates the concept
-            mock_pools = [
-                {
-                    "pool_address": "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
-                    "protocol": "raydium",
-                    "token_a": "BONK",
-                    "token_b": "USDC",
-                    "estimated_apy": 1247.5,
-                    "tvl": 890000,
-                    "volume_24h": 125000,
-                    "age_hours": 18,
-                    "creator": "4xZ7...9qWx",
-                    "liquidity_locked": True
-                },
-                {
-                    "pool_address": "9yKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
-                    "protocol": "raydium",
-                    "token_a": "PEPE",
-                    "token_b": "SOL",
-                    "estimated_apy": 2847.2,
-                    "tvl": 340000,
-                    "volume_24h": 89000,
-                    "age_hours": 6,
-                    "creator": "8xZ7...1qWx",
-                    "liquidity_locked": False
-                }
-            ]
-            
-            # Filter by criteria
-            for pool in mock_pools:
-                if (pool["estimated_apy"] >= min_apy and 
-                    pool["age_hours"] <= max_age_hours):
-                    pools.append(pool)
-            
-        except Exception as e:
-            print(f"Error scanning Raydium: {e}")
-        
-        return pools
+        """Deprecated - Use RadiumScannerTool instead"""
+        raise NotImplementedError(
+            "Mock pool scanner has been removed. Use RadiumScannerTool or RealPoolScannerTool for real data."
+        )
     
     def _scan_orca(self, min_apy: float, max_age_hours: int) -> List[Dict]:
-        """Scan Orca for new pools"""
-        pools = []
-        
-        try:
-            # Mock Orca data
-            mock_pools = [
-                {
-                    "pool_address": "5xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
-                    "protocol": "orca",
-                    "token_a": "SAMO",
-                    "token_b": "USDC",
-                    "estimated_apy": 567.8,
-                    "tvl": 1200000,
-                    "volume_24h": 95000,
-                    "age_hours": 12,
-                    "creator": "3xZ7...5qWx",
-                    "liquidity_locked": True
-                }
-            ]
-            
-            # Filter by criteria
-            for pool in mock_pools:
-                if (pool["estimated_apy"] >= min_apy and 
-                    pool["age_hours"] <= max_age_hours):
-                    pools.append(pool)
-            
-        except Exception as e:
-            print(f"Error scanning Orca: {e}")
-        
-        return pools
+        """Deprecated - Use real scanners instead"""
+        raise NotImplementedError(
+            "Mock pool scanner has been removed. Use RadiumScannerTool or RealPoolScannerTool for real data."
+        )
     
     async def _arun(self, min_apy: float, max_age_hours: int = 24, protocols: List[str] = ["raydium", "orca"]) -> str:
         """Async version of the tool"""

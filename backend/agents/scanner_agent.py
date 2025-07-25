@@ -2,6 +2,7 @@ from typing import Dict, List, Any
 from agents.base_agent import BaseAgent
 from tools.pool_scanner import PoolScannerTool
 from tools.real_pool_scanner import RealPoolScannerTool
+from tools.raydium_scanner import RadiumScannerTool
 from tools.web_search_tool import WebSearchTool
 from tools.helius_client import HeliusClient
 import json
@@ -13,6 +14,7 @@ class ScannerAgent(BaseAgent):
         tools = [
             PoolScannerTool(),           # Mock data for testing
             RealPoolScannerTool(),       # Real DeFiLlama + Helius data
+            RadiumScannerTool(),         # Real Raydium pools with addresses
             WebSearchTool()              # Web search for alpha
         ]
         super().__init__(
@@ -53,8 +55,17 @@ Communication style:
     
     def scan_new_opportunities(self, min_apy: float = 500, max_age_hours: int = 48) -> Dict[str, Any]:
         """Primary method to scan for new opportunities"""
-        # Directly use the real pool scanner tool for now
+        # Try Raydium first for real addresses
         try:
+            from tools.raydium_scanner import RadiumScannerTool
+            raydium_scanner = RadiumScannerTool()
+            
+            # Execute Raydium scan
+            raydium_result = raydium_scanner._run(min_apy=min_apy, min_tvl=10000)
+            raydium_data = json.loads(raydium_result)
+            raydium_pools = raydium_data.get("pools", [])
+            
+            # Also try DeFiLlama for additional data
             from tools.real_pool_scanner import RealPoolScannerTool
             scanner_tool = RealPoolScannerTool()
             
@@ -82,15 +93,29 @@ Communication style:
             else:
                 pools_data = []
             
+            # Combine Raydium and DeFiLlama pools
+            all_pools = raydium_pools + pools_data
+            
+            # Remove duplicates and sort by APY
+            unique_pools = {}
+            for pool in all_pools:
+                pool_id = pool.get("pool_address", pool.get("pool", ""))
+                if pool_id and (pool_id not in unique_pools or pool.get("real_address", False)):
+                    unique_pools[pool_id] = pool
+            
+            final_pools = list(unique_pools.values())
+            final_pools.sort(key=lambda x: x.get("apy", x.get("estimated_apy", 0)), reverse=True)
+            
             return {
                 "agent": "ScannerAgent",
                 "scan_complete": True,
-                "pools_found": len(pools_data),
-                "opportunities": pools_data,
+                "pools_found": len(final_pools),
+                "opportunities": final_pools[:20],  # Top 20
                 "scan_criteria": {
                     "min_apy": min_apy,
                     "max_age_hours": max_age_hours
-                }
+                },
+                "data_sources": ["Raydium", "DeFiLlama"]
             }
         except Exception as e:
             print(f"Scanner error: {str(e)}")
