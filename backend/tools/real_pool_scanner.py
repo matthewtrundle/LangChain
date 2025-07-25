@@ -15,18 +15,21 @@ class RealPoolScannerTool(BaseTool):
         super().__init__()
         self.helius_client = HeliusClient()
     
-    def _run(self, min_apy: float = 500) -> str:
+    def _run(self, min_apy: float = 500, max_age_hours: int = 48) -> str:
         """Scan for real high-yield opportunities"""
         try:
+            print(f"[RealPoolScanner] Running scan with min_apy={min_apy}")
             real_opportunities = []
             
             # 1. DeFiLlama - Get real APY data
             defi_llama_pools = self._get_defi_llama_pools(min_apy)
             real_opportunities.extend(defi_llama_pools)
+            print(f"[RealPoolScanner] Added {len(defi_llama_pools)} DeFiLlama pools")
             
             # 2. Helius - Get new pool creations
             new_pools = self._get_new_pools_from_helius()
             real_opportunities.extend(new_pools)
+            print(f"[RealPoolScanner] Added {len(new_pools)} Helius pools")
             
             # 3. Enhance with FREE Jupiter pricing
             enhanced_pools = self._enhance_with_free_data(real_opportunities)
@@ -34,6 +37,8 @@ class RealPoolScannerTool(BaseTool):
             # 4. Sort by APY and filter
             final_pools = [p for p in enhanced_pools if p.get("apy", 0) >= min_apy]
             final_pools.sort(key=lambda x: x.get("apy", 0), reverse=True)
+            
+            print(f"[RealPoolScanner] Returning {len(final_pools)} pools meeting criteria")
             
             return json.dumps({
                 "source": "REAL_DATA",
@@ -44,24 +49,51 @@ class RealPoolScannerTool(BaseTool):
             }, indent=2)
             
         except Exception as e:
+            print(f"[RealPoolScanner] Error: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return f"Error scanning real pools: {str(e)}"
     
     def _get_defi_llama_pools(self, min_apy: float) -> List[Dict]:
         """Get real pool data from DeFiLlama"""
         try:
-            # TODO: USER - This is a real API call to DeFiLlama (FREE)
-            # No API key needed, just make the request
+            print(f"[RealPoolScanner] Fetching pools from DeFiLlama API with min APY: {min_apy}%")
             response = requests.get("https://yields.llama.fi/pools", timeout=10)
             
             if response.status_code == 200:
                 data = response.json()
+                all_pools = data.get("data", [])
+                print(f"[RealPoolScanner] DeFiLlama returned {len(all_pools)} total pools")
                 
                 solana_pools = []
-                for pool in data.get("data", []):
-                    if (pool.get("chain") == "Solana" and 
-                        pool.get("apy", 0) >= min_apy):
-                        
-                        # Convert to our format
+                for pool in all_pools:
+                    if pool.get("chain") == "Solana":
+                        apy = pool.get("apy", 0)
+                        if apy >= min_apy:
+                            # Convert to our format
+                            pool_data = {
+                                "pool_address": pool.get("pool", "unknown"),
+                                "protocol": pool.get("project", "unknown"),
+                                "token_symbols": pool.get("symbol", "UNKNOWN"),
+                                "apy": apy,
+                                "tvl": pool.get("tvlUsd", 0),
+                                "volume_24h": pool.get("volumeUsd1d", 0),
+                                "age_days": 1,  # DeFiLlama doesn't provide creation time
+                                "source": "DeFiLlama_REAL",
+                                "real_data": True
+                            }
+                            solana_pools.append(pool_data)
+                            print(f"[RealPoolScanner] Found: {pool_data['token_symbols']} @ {pool_data['protocol']} - {apy:.1f}% APY")
+                
+                print(f"[RealPoolScanner] Found {len(solana_pools)} Solana pools with APY >= {min_apy}%")
+                
+                # If no high APY pools, get top Solana pools by APY
+                if not solana_pools:
+                    print("[RealPoolScanner] No pools meet APY threshold, getting top Solana pools...")
+                    solana_only = [p for p in all_pools if p.get("chain") == "Solana" and p.get("apy", 0) > 0]
+                    solana_only.sort(key=lambda x: x.get("apy", 0), reverse=True)
+                    
+                    for pool in solana_only[:5]:  # Top 5 pools
                         pool_data = {
                             "pool_address": pool.get("pool", "unknown"),
                             "protocol": pool.get("project", "unknown"),
@@ -69,19 +101,22 @@ class RealPoolScannerTool(BaseTool):
                             "apy": pool.get("apy", 0),
                             "tvl": pool.get("tvlUsd", 0),
                             "volume_24h": pool.get("volumeUsd1d", 0),
-                            "age_days": self._calculate_age_days(pool.get("timestamp", "")),
+                            "age_days": 1,
                             "source": "DeFiLlama_REAL",
                             "real_data": True
                         }
                         solana_pools.append(pool_data)
+                        print(f"[RealPoolScanner] Top pool: {pool_data['token_symbols']} - {pool_data['apy']:.1f}% APY")
                 
                 return solana_pools
             else:
-                print(f"DeFiLlama API error: {response.status_code}")
+                print(f"[RealPoolScanner] DeFiLlama API error: {response.status_code}")
                 return self._get_defi_llama_fallback(min_apy)
             
         except Exception as e:
-            print(f"Error fetching DeFiLlama data: {e}")
+            print(f"[RealPoolScanner] Error fetching DeFiLlama data: {e}")
+            import traceback
+            traceback.print_exc()
             return self._get_defi_llama_fallback(min_apy)
     
     def _get_defi_llama_fallback(self, min_apy: float) -> List[Dict]:

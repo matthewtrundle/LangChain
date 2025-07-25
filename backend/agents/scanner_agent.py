@@ -53,13 +53,52 @@ Communication style:
     
     def scan_new_opportunities(self, min_apy: float = 500, max_age_hours: int = 48) -> Dict[str, Any]:
         """Primary method to scan for new opportunities"""
-        task = f"Scan for new yield opportunities with minimum {min_apy}% APY and maximum age of {max_age_hours} hours"
-        result = self.execute(task)
-        
-        if result["success"]:
-            # Parse and structure the results
-            try:
-                # Extract pool data from agent response
+        # Directly use the real pool scanner tool for now
+        try:
+            from tools.real_pool_scanner import RealPoolScannerTool
+            scanner_tool = RealPoolScannerTool()
+            
+            # Execute the scan
+            scan_params = {
+                "min_apy": min_apy,
+                "max_age_hours": max_age_hours
+            }
+            
+            tool_result = scanner_tool.run(json.dumps(scan_params))
+            
+            # Parse the tool result
+            if isinstance(tool_result, str):
+                # Try to extract JSON from the result
+                try:
+                    import re
+                    json_match = re.search(r'\{.*\}', tool_result, re.DOTALL)
+                    if json_match:
+                        result_data = json.loads(json_match.group())
+                        pools_data = result_data.get("pools", [])
+                    else:
+                        pools_data = []
+                except:
+                    pools_data = []
+            else:
+                pools_data = []
+            
+            return {
+                "agent": "ScannerAgent",
+                "scan_complete": True,
+                "pools_found": len(pools_data),
+                "opportunities": pools_data,
+                "scan_criteria": {
+                    "min_apy": min_apy,
+                    "max_age_hours": max_age_hours
+                }
+            }
+        except Exception as e:
+            print(f"Scanner error: {str(e)}")
+            # Fallback to agent execution
+            task = f"Use the real_pool_scanner tool to scan for pools with minimum {min_apy}% APY"
+            result = self.execute(task)
+            
+            if result["success"]:
                 pools_data = self._extract_pools_from_response(result["result"])
                 return {
                     "agent": "ScannerAgent",
@@ -71,57 +110,44 @@ Communication style:
                         "max_age_hours": max_age_hours
                     }
                 }
-            except Exception as e:
-                return {
-                    "agent": "ScannerAgent",
-                    "scan_complete": False,
-                    "error": f"Failed to parse results: {str(e)}"
-                }
-        else:
-            return result
+            else:
+                return result
     
     def _extract_pools_from_response(self, response: str) -> List[Dict]:
         """Extract structured pool data from agent response"""
-        # For now, always return some mock data to demonstrate functionality
-        # In production, this would parse the agent's actual response
+        # Try to parse JSON from the agent's response
+        try:
+            import re
+            # Look for JSON data in the response
+            json_matches = re.findall(r'\{[^{}]*\}', response)
+            pools = []
+            
+            for match in json_matches:
+                try:
+                    data = json.loads(match)
+                    if "pool_address" in data or "protocol" in data:
+                        # Ensure required fields
+                        pool = {
+                            "pool_address": data.get("pool_address", "unknown"),
+                            "protocol": data.get("protocol", "unknown"),
+                            "token_symbols": data.get("token_symbols", data.get("symbol", "UNKNOWN")),
+                            "apy": data.get("apy", data.get("estimated_apy", 0)),
+                            "tvl": data.get("tvl", data.get("tvlUsd", 0)),
+                            "volume_24h": data.get("volume_24h", data.get("volumeUsd1d", 0)),
+                            "source": data.get("source", "Scanner Agent"),
+                            "real_data": data.get("real_data", True)
+                        }
+                        pools.append(pool)
+                except:
+                    continue
+            
+            if pools:
+                return pools
+        except Exception as e:
+            print(f"Error parsing response: {e}")
         
-        # Return demo pools for testing
-        return [
-            {
-                "pool_address": "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
-                "protocol": "raydium",
-                "token_symbols": "BONK/USDC",
-                "token_a": "BONK",
-                "token_b": "USDC",
-                "apy": 1247.5,
-                "estimated_apy": 1247.5,
-                "tvl": 890000,
-                "volume_24h": 125000,
-                "age_hours": 18,
-                "creator": "4xZ7...9qWx",
-                "liquidity_locked": True,
-                "source": "Scanner Agent",
-                "real_data": False,
-                "scanner_notes": "🔍 New BONK pool with locked liquidity - promising!"
-            },
-            {
-                "pool_address": "9yKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
-                "protocol": "raydium",
-                "token_symbols": "PEPE/SOL",
-                "token_a": "PEPE",
-                "token_b": "SOL",
-                "apy": 2847.2,
-                "estimated_apy": 2847.2,
-                "tvl": 340000,
-                "volume_24h": 89000,
-                "age_hours": 6,
-                "creator": "8xZ7...1qWx",
-                "liquidity_locked": False,
-                "source": "Scanner Agent",
-                "real_data": False,
-                "scanner_notes": "⚡ EXTREME APY but no liquidity lock - proceed with caution!"
-            }
-        ]
+        # If no pools found in response, return empty list
+        return []
     
     def focus_scan(self, protocol: str, token_symbol: str) -> Dict[str, Any]:
         """Focus scan on specific protocol or token"""
