@@ -84,14 +84,25 @@ export default function Home() {
 
   const handleAnalyze = async (poolAddress: string) => {
     try {
+      console.log('Analyzing pool:', poolAddress)
       const response = await apiClient.analyze(poolAddress)
+      console.log('Analysis response:', response)
+      
       if (response.success) {
-        console.log('Analysis complete:', response.result)
-        // Update the specific pool with analysis results
-        // For now, just log - in production would update pool data
+        // Extract key information from the analysis
+        const analysisText = response.result || 'Analysis complete'
+        
+        // For now, show in an alert - in production would use a modal
+        alert(`🔍 Analysis Results for ${poolAddress}:\n\n${analysisText}`)
+        
+        // You could also update the pool data with risk scores
+        // setPools(pools.map(p => p.pool_address === poolAddress ? {...p, analyzed: true} : p))
+      } else {
+        alert('Analysis failed: ' + (response.error || 'Unknown error'))
       }
     } catch (error) {
       console.error('Analysis failed:', error)
+      alert('Unable to analyze pool at this time')
     }
   }
 

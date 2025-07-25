@@ -30,6 +30,12 @@ export default function OpportunityCard({ pool, onAnalyze }: OpportunityCardProp
     }
   }
 
+  const handleView = () => {
+    // Open pool in Solscan (Solana block explorer)
+    const explorerUrl = `https://solscan.io/account/${pool.pool_address}`
+    window.open(explorerUrl, '_blank', 'noopener,noreferrer')
+  }
+
   const getRiskBadgeClass = (risk: string) => {
     switch (risk) {
       case 'LOW': return 'badge-success'
@@ -167,7 +173,7 @@ export default function OpportunityCard({ pool, onAnalyze }: OpportunityCardProp
             </>
           )}
         </button>
-        <button className="btn-secondary">
+        <button onClick={handleView} className="btn-secondary">
           <ExternalLinkIcon className="w-4 h-4 mr-2" />
           View
         </button>
