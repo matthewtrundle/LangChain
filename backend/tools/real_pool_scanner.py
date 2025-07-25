@@ -57,6 +57,14 @@ class RealPoolScannerTool(BaseTool):
     def _get_defi_llama_pools(self, min_apy: float) -> List[Dict]:
         """Get real pool data from DeFiLlama"""
         try:
+            # Ensure min_apy is a float
+            if isinstance(min_apy, str):
+                try:
+                    import json
+                    min_apy = json.loads(min_apy).get("min_apy", 100)
+                except:
+                    min_apy = float(min_apy) if min_apy else 100
+            
             print(f"[RealPoolScanner] Fetching pools from DeFiLlama API with min APY: {min_apy}%")
             response = requests.get("https://yields.llama.fi/pools", timeout=10)
             

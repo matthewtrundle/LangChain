@@ -64,7 +64,7 @@ Communication style:
                 "max_age_hours": max_age_hours
             }
             
-            tool_result = scanner_tool.run(json.dumps(scan_params))
+            tool_result = scanner_tool._run(min_apy=min_apy, max_age_hours=max_age_hours)
             
             # Parse the tool result
             if isinstance(tool_result, str):
