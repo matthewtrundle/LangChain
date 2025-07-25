@@ -96,7 +96,7 @@ export default function Home() {
   const handleAnalyze = async (poolAddress: string) => {
     try {
       console.log('Analyzing pool:', poolAddress)
-      const response: any = await apiClient.analyze(poolAddress)
+      const response = await apiClient.analyze(poolAddress)
       console.log('Analysis response:', response)
       
       if (response.success) {
@@ -108,7 +108,7 @@ export default function Home() {
           isOpen: true,
           poolAddress: poolAddress,
           result: analysisText,
-          scoreData: response.score_data || null
+          scoreData: (response as any).score_data || null
         })
         
         // You could also update the pool data with risk scores
