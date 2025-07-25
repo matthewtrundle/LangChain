@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any
 import json
 import hashlib
+from datetime import datetime
 
 from agents.coordinator_agent import CoordinatorAgent
 from agents.scanner_agent import ScannerAgent
@@ -101,10 +102,19 @@ async def scan_opportunities(request: ScanRequest):
             max_age_hours=request.max_age_hours
         )
         
-        # Cache result
-        rate_limiter.cache_response(cache_key, result)
+        # Transform to expected format
+        scan_response = {
+            "source": "Scanner Agent",
+            "found_pools": result.get("pools_found", 0),
+            "pools": result.get("opportunities", []),
+            "scan_time": datetime.now().isoformat(),
+            "data_sources": ["Helius RPC", "Jupiter", "DeFi Llama"]
+        }
         
-        return result
+        # Cache result
+        rate_limiter.cache_response(cache_key, scan_response)
+        
+        return scan_response
     except HTTPException:
         raise
     except Exception as e:

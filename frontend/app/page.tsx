@@ -23,20 +23,25 @@ export default function Home() {
     setAgentResponse('')
     
     try {
+      console.log('Starting hunt with query:', query)
       const response: CoordinatorResponse = await apiClient.hunt(query)
+      console.log('Hunt response:', response)
       
       if (response.success) {
         // Extract pools from coordinator response
         const discoveredPools = response.results?.discovery?.top_opportunities || []
+        console.log('Discovered pools:', discoveredPools)
+        
         setPools(discoveredPools)
-        setAgentResponse(response.coordination_summary)
+        setAgentResponse(response.coordination_summary || 'Search completed')
         
         setScanStats({
           found: discoveredPools.length,
           sources: ['Multi-Agent System']
         })
       } else {
-        setAgentResponse('Failed to process request')
+        console.error('Hunt failed - response not successful:', response)
+        setAgentResponse(response.error || 'Failed to process request')
       }
     } catch (error) {
       console.error('Hunt failed:', error)
@@ -52,13 +57,21 @@ export default function Home() {
     setAgentResponse('')
     
     try {
+      console.log('Starting quick scan with minApy:', minApy)
       const response: ScanResult = await apiClient.scan(minApy)
-      setPools(response.pools)
-      setAgentResponse(`Scanner found ${response.found_pools} opportunities`)
+      console.log('Scan response:', response)
+      
+      // Handle the response data properly
+      const pools = response.pools || []
+      const foundCount = response.found_pools || pools.length || 0
+      const sources = response.data_sources || ['Scanner Agent']
+      
+      setPools(pools)
+      setAgentResponse(`Scanner found ${foundCount} opportunities`)
       
       setScanStats({
-        found: response.found_pools,
-        sources: response.data_sources
+        found: foundCount,
+        sources: sources
       })
     } catch (error) {
       console.error('Scan failed:', error)
