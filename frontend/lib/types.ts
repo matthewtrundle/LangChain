@@ -47,6 +47,7 @@ export interface CoordinatorResponse {
   coordination_summary: string
   execution_time: string
   success: boolean
+  error?: string
 }
 
 export interface DegenScore {
