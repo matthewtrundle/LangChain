@@ -1,5 +1,6 @@
 'use client'
 
+// Force rebuild - v2
 import { useState } from 'react'
 import { debugInfo } from '@/lib/debug'
 import { Pool, ScanResult, CoordinatorResponse } from '@/lib/types'
@@ -41,7 +42,7 @@ export default function Home() {
         })
       } else {
         console.error('Hunt failed - response not successful:', response)
-        setAgentResponse(response.error || 'Failed to process request')
+        setAgentResponse((response as any).error || 'Failed to process request')
       }
     } catch (error) {
       console.error('Hunt failed:', error)
