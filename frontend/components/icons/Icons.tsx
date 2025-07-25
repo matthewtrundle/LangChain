@@ -96,4 +96,46 @@ export const BrainIcon = (props: SVGProps<SVGSVGElement>) => (
   </svg>
 )
 
+export const BriefcaseIcon = (props: SVGProps<SVGSVGElement>) => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" {...props}>
+    <rect x="2" y="7" width="20" height="14" rx="2" ry="2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <line x1="2" y1="11" x2="22" y2="11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+)
+
+export const TrendingDownIcon = (props: SVGProps<SVGSVGElement>) => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" {...props}>
+    <path d="M23 18l-9.5-9.5-5 5L1 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M17 18h6v-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+)
+
+export const ClockIcon = (props: SVGProps<SVGSVGElement>) => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" {...props}>
+    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+)
+
+export const RefreshCwIcon = (props: SVGProps<SVGSVGElement>) => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" {...props}>
+    <path d="M1 4v6h6M23 20v-6h-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+)
+
+export const XIcon = (props: SVGProps<SVGSVGElement>) => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" {...props}>
+    <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+)
+
+export const ShieldIcon = (props: SVGProps<SVGSVGElement>) => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" {...props}>
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+)
+
 export const AlertCircleIcon = AlertTriangleIcon  // Alias for consistency

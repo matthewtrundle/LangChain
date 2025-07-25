@@ -10,8 +10,12 @@ from agents.coordinator_agent import CoordinatorAgent
 from agents.scanner_agent import ScannerAgent
 from agents.analyzer_agent import AnalyzerAgent
 from agents.monitor_agent import MonitorAgent
+from agents.enhanced_monitor_agent import EnhancedMonitorAgent
 from config import Config
 from middleware.rate_limiter import rate_limiter, check_api_limit
+from services.position_manager import position_manager
+from models.position import Position, PositionStatus
+from services.wallet_service import get_wallet, TransactionType
 
 app = FastAPI(title="Solana Degen Hunter Multi-Agent API", version="2.0.0")
 
@@ -34,6 +38,7 @@ coordinator = CoordinatorAgent()
 scanner = ScannerAgent()
 analyzer = AnalyzerAgent()
 monitor = MonitorAgent()
+enhanced_monitor = EnhancedMonitorAgent()
 
 # Request models
 class HuntRequest(BaseModel):
@@ -52,7 +57,11 @@ class RecommendationRequest(BaseModel):
 class AddPositionRequest(BaseModel):
     pool_address: str
     pool_data: Dict[str, Any]
-    user_position: Dict[str, Any]
+    amount: float = 100.0  # Default $100
+
+class ExitPositionRequest(BaseModel):
+    position_id: str
+    reason: str = "manual"
 
 @app.get("/")
 async def root():
@@ -195,16 +204,78 @@ async def analyze_pool(request: AnalyzeRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/monitor/add")
-async def add_position(request: AddPositionRequest):
-    """Add position to monitoring"""
+@app.post("/position/enter")
+async def enter_position(request: AddPositionRequest):
+    """Enter a new position"""
     try:
-        result = monitor.add_position(
-            request.pool_address,
-            request.pool_data,
-            request.user_position
-        )
-        return result
+        # Use enhanced monitor to add position
+        result = enhanced_monitor.monitored_positions
+        
+        # Enter position through position manager
+        position = position_manager.enter_position(request.pool_data, request.amount)
+        
+        # Start monitoring
+        enhanced_monitor.monitored_positions[position.id] = {
+            "position": position,
+            "last_check": datetime.now(),
+            "alerts": []
+        }
+        
+        return {
+            "success": True,
+            "position": position.dict(),
+            "message": f"Entered ${request.amount} position in {request.pool_data.get('token_symbols', 'Unknown')}"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/position/exit")
+async def exit_position(request: ExitPositionRequest):
+    """Exit a position"""
+    try:
+        from models.position import ExitReason
+        
+        # Parse exit reason
+        exit_reason = ExitReason.MANUAL
+        for reason in ExitReason:
+            if reason.value == request.reason:
+                exit_reason = reason
+                break
+        
+        # Exit position
+        position = position_manager.exit_position(request.position_id, exit_reason)
+        
+        return {
+            "success": True,
+            "position": position.dict(),
+            "final_pnl": position.pnl_amount,
+            "final_pnl_percent": position.pnl_percent,
+            "message": f"Exited position with {position.pnl_percent:.1f}% P&L"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/positions")
+async def get_positions():
+    """Get all positions"""
+    try:
+        active = position_manager.get_active_positions()
+        summary = position_manager.get_position_summary()
+        
+        return {
+            "active_positions": [p.dict() for p in active],
+            "position_history": [p.dict() for p in position_manager.position_history],
+            "summary": summary.dict()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/position/{position_id}")
+async def get_position(position_id: str):
+    """Get specific position details"""
+    try:
+        report = enhanced_monitor.get_position_report(position_id)
+        return report
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -215,7 +286,12 @@ async def check_positions():
         # Check rate limit
         check_api_limit("/api/monitor/check")
         
-        result = monitor.check_positions()
+        # Use enhanced monitor
+        result = enhanced_monitor.monitor_all_positions()
+        
+        # Also run position updates
+        position_manager.simulate_position_updates()
+        
         return result
     except HTTPException:
         raise
@@ -245,6 +321,85 @@ async def get_rate_limit_status():
         "caching_enabled": Config.ENABLE_CACHING,
         "cache_ttl_seconds": Config.CACHE_TTL
     }
+
+@app.get("/wallet")
+async def get_wallet_info():
+    """Get wallet balance and performance metrics"""
+    try:
+        wallet = get_wallet()
+        return {
+            "balance": wallet.get_balance(),
+            "initial_balance": wallet.initial_balance,
+            "available_balance": wallet.get_available_balance(),
+            "performance": wallet.get_performance_metrics().to_dict(),
+            "transaction_count": len(wallet.transactions)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/wallet/transactions")
+async def get_wallet_transactions(
+    limit: int = 50,
+    offset: int = 0,
+    position_id: Optional[str] = None
+):
+    """Get wallet transaction history"""
+    try:
+        wallet = get_wallet()
+        transactions = wallet.get_transactions(limit, offset, position_id)
+        return {
+            "transactions": [t.to_dict() for t in transactions],
+            "total": len(wallet.transactions),
+            "limit": limit,
+            "offset": offset
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/wallet/performance")
+async def get_wallet_performance():
+    """Get detailed wallet performance metrics"""
+    try:
+        wallet = get_wallet()
+        metrics = wallet.get_performance_metrics()
+        
+        # Add additional context
+        return {
+            "metrics": metrics.to_dict(),
+            "current_balance": wallet.get_balance(),
+            "initial_balance": wallet.initial_balance,
+            "all_time_high": max(wallet.balance, wallet.initial_balance),  # Simple ATH
+            "position_count": {
+                "active": len(position_manager.get_active_positions()),
+                "total": len(position_manager.positions) + len(position_manager.position_history)
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/wallet/reset")
+async def reset_wallet():
+    """Reset wallet to initial state (dev only)"""
+    try:
+        if Config.ENVIRONMENT != "development":
+            raise HTTPException(status_code=403, detail="Wallet reset only allowed in development")
+        
+        wallet = get_wallet()
+        wallet.reset()
+        
+        # Also reset position manager
+        position_manager.positions.clear()
+        position_manager.position_history.clear()
+        
+        return {
+            "success": True,
+            "message": "Wallet and positions reset to initial state",
+            "new_balance": wallet.get_balance()
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/health")
 async def health_check():

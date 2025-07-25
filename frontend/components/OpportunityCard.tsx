@@ -13,14 +13,17 @@ import {
   ZapIcon,
   BarChartIcon
 } from './icons/Icons'
+import PositionEntryModal from './PositionEntryModal'
 
 interface OpportunityCardProps {
   pool: Pool
   onAnalyze?: (poolAddress: string) => void
+  onEnterPosition?: (pool: Pool) => void
 }
 
-export default function OpportunityCard({ pool, onAnalyze }: OpportunityCardProps) {
+export default function OpportunityCard({ pool, onAnalyze, onEnterPosition }: OpportunityCardProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [showEntryModal, setShowEntryModal] = useState(false)
 
   const handleAnalyze = async () => {
     if (onAnalyze) {
@@ -34,6 +37,13 @@ export default function OpportunityCard({ pool, onAnalyze }: OpportunityCardProp
     // Open pool in Solscan (Solana block explorer)
     const explorerUrl = `https://solscan.io/account/${pool.pool_address}`
     window.open(explorerUrl, '_blank', 'noopener,noreferrer')
+  }
+
+  const handlePositionSuccess = () => {
+    setShowEntryModal(false)
+    if (onEnterPosition) {
+      onEnterPosition(pool)
+    }
   }
 
   const getRiskBadgeClass = (risk: string) => {
@@ -157,9 +167,16 @@ export default function OpportunityCard({ pool, onAnalyze }: OpportunityCardProp
       {/* Action Buttons */}
       <div className="flex gap-2">
         <button
+          onClick={() => setShowEntryModal(true)}
+          className="btn-primary flex-1"
+        >
+          <ZapIcon className="w-4 h-4 mr-2" />
+          Enter Position
+        </button>
+        <button
           onClick={handleAnalyze}
           disabled={isAnalyzing}
-          className="btn-primary flex-1 disabled:opacity-50"
+          className="btn-secondary flex-1 disabled:opacity-50"
         >
           {isAnalyzing ? (
             <>
@@ -173,9 +190,8 @@ export default function OpportunityCard({ pool, onAnalyze }: OpportunityCardProp
             </>
           )}
         </button>
-        <button onClick={handleView} className="btn-secondary">
-          <ExternalLinkIcon className="w-4 h-4 mr-2" />
-          View
+        <button onClick={handleView} className="btn-ghost">
+          <ExternalLinkIcon className="w-4 h-4" />
         </button>
       </div>
 
@@ -188,6 +204,14 @@ export default function OpportunityCard({ pool, onAnalyze }: OpportunityCardProp
           )}
         </div>
       </div>
+      
+      {/* Position Entry Modal */}
+      <PositionEntryModal
+        isOpen={showEntryModal}
+        onClose={() => setShowEntryModal(false)}
+        pool={pool}
+        onSuccess={handlePositionSuccess}
+      />
     </div>
   )
 }

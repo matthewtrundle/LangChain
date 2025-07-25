@@ -10,7 +10,9 @@ import SearchBar from '@/components/SearchBar'
 import SystemStatus from '@/components/SystemStatus'
 import AgentFlowVisualizer from '@/components/AgentFlowVisualizer'
 import AnalysisModal from '@/components/AnalysisModal'
-import { TrendingUpIcon, ActivityIcon, DatabaseIcon } from '@/components/icons/Icons'
+import PositionDashboard from '@/components/PositionDashboard'
+import WalletDashboard from '@/components/WalletDashboard'
+import { TrendingUpIcon, ActivityIcon, DatabaseIcon, BriefcaseIcon } from '@/components/icons/Icons'
 
 export default function Home() {
   const [pools, setPools] = useState<Pool[]>([])
@@ -24,6 +26,8 @@ export default function Home() {
     result: '',
     scoreData: null as any
   })
+  const [showPositions, setShowPositions] = useState(false)
+  const [positionRefreshKey, setPositionRefreshKey] = useState(0)
 
   const handleSearch = async (query: string) => {
     setIsLoading(true)
@@ -92,7 +96,7 @@ export default function Home() {
   const handleAnalyze = async (poolAddress: string) => {
     try {
       console.log('Analyzing pool:', poolAddress)
-      const response = await apiClient.analyze(poolAddress)
+      const response: any = await apiClient.analyze(poolAddress)
       console.log('Analysis response:', response)
       
       if (response.success) {
@@ -120,6 +124,37 @@ export default function Home() {
     } catch (error) {
       console.error('Analysis failed:', error)
       alert('Unable to analyze pool at this time')
+    }
+  }
+
+  const handleEnterPosition = async (pool: Pool) => {
+    try {
+      console.log('Entering position for pool:', pool)
+      const response = await fetch(`${apiClient.baseUrl}/position/enter`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pool_address: pool.pool_address,
+          pool_data: pool,
+          amount: 100 // Default $100
+        })
+      })
+      
+      if (response.ok) {
+        const result = await response.json()
+        alert(`✅ Position entered successfully!\n\nPool: ${pool.token_symbols}\nAmount: $100\nAPY: ${pool.apy}%`)
+        
+        // Show positions dashboard
+        setShowPositions(true)
+        // Refresh position dashboard
+        setPositionRefreshKey(prev => prev + 1)
+      } else {
+        const error = await response.json()
+        alert(`Failed to enter position: ${error.detail || 'Unknown error'}`)
+      }
+    } catch (error) {
+      console.error('Failed to enter position:', error)
+      alert('Failed to enter position. Please try again.')
     }
   }
 
@@ -154,6 +189,14 @@ export default function Home() {
               <div className="text-cyber-tertiary">SCANNING 47 PROTOCOLS</div>
               <div className="text-text-tertiary">|</div>
               <div className="text-performance-extreme font-bold">HIGHEST: 2,847% APY</div>
+              <div className="text-text-tertiary">|</div>
+              <button
+                onClick={() => setShowPositions(!showPositions)}
+                className="flex items-center gap-2 text-cyber-primary hover:text-cyber-secondary transition-colors"
+              >
+                <BriefcaseIcon className="w-4 h-4" />
+                <span className="font-semibold">POSITIONS</span>
+              </button>
             </div>
           </div>
         </header>
@@ -261,6 +304,7 @@ export default function Home() {
                       <OpportunityCard
                         pool={pool}
                         onAnalyze={handleAnalyze}
+                        onEnterPosition={handleEnterPosition}
                       />
                     </div>
                   ))}
@@ -303,6 +347,35 @@ export default function Home() {
         analysisResult={analysisModal.result}
         scoreData={analysisModal.scoreData}
       />
+
+      {/* Positions Dashboard Modal */}
+      {showPositions && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 overflow-y-auto">
+          <div className="min-h-screen px-4 py-8">
+            <div className="max-w-7xl mx-auto">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-3xl font-bold text-text-primary">Portfolio Management</h2>
+                <button
+                  onClick={() => setShowPositions(false)}
+                  className="text-text-tertiary hover:text-text-primary transition-colors"
+                >
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              {/* Wallet Dashboard */}
+              <div className="mb-8">
+                <WalletDashboard />
+              </div>
+              
+              {/* Position Dashboard */}
+              <PositionDashboard key={positionRefreshKey} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

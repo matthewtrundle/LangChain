@@ -36,6 +36,18 @@ export interface AgentResponse {
   result?: string
   error?: string
   task?: string
+  score_data?: {
+    degen_score: number
+    risk_level: string
+    score_breakdown?: {
+      liquidity_score: number
+      age_score: number
+      volume_score: number
+      creator_score: number
+      token_score: number
+    }
+    red_flags?: string[]
+  }
 }
 
 export interface CoordinatorResponse {
