@@ -82,45 +82,43 @@ Communication style:
     
     def _extract_pools_from_response(self, response: str) -> List[Dict]:
         """Extract structured pool data from agent response"""
-        # In a real implementation, this would parse the agent's natural language response
-        # For now, we'll use the mock data from the tool
-        try:
-            # Try to find JSON data in the response
-            if "found_pools" in response:
-                start = response.find('{')
-                end = response.rfind('}') + 1
-                json_data = response[start:end]
-                parsed_data = json.loads(json_data)
-                return parsed_data.get("pools", [])
-        except:
-            pass
+        # For now, always return some mock data to demonstrate functionality
+        # In production, this would parse the agent's actual response
         
-        # Fallback to mock data
+        # Return demo pools for testing
         return [
             {
                 "pool_address": "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
                 "protocol": "raydium",
+                "token_symbols": "BONK/USDC",
                 "token_a": "BONK",
                 "token_b": "USDC",
+                "apy": 1247.5,
                 "estimated_apy": 1247.5,
                 "tvl": 890000,
                 "volume_24h": 125000,
                 "age_hours": 18,
                 "creator": "4xZ7...9qWx",
                 "liquidity_locked": True,
+                "source": "Scanner Agent",
+                "real_data": False,
                 "scanner_notes": "🔍 New BONK pool with locked liquidity - promising!"
             },
             {
                 "pool_address": "9yKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
                 "protocol": "raydium",
+                "token_symbols": "PEPE/SOL",
                 "token_a": "PEPE",
                 "token_b": "SOL",
+                "apy": 2847.2,
                 "estimated_apy": 2847.2,
                 "tvl": 340000,
                 "volume_24h": 89000,
                 "age_hours": 6,
                 "creator": "8xZ7...1qWx",
                 "liquidity_locked": False,
+                "source": "Scanner Agent",
+                "real_data": False,
                 "scanner_notes": "⚡ EXTREME APY but no liquidity lock - proceed with caution!"
             }
         ]
