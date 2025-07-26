@@ -570,14 +570,20 @@ async def get_wallet_info():
     """Get wallet balance and performance metrics"""
     try:
         wallet = get_wallet()
+        # Debug logging
+        balance = wallet.get_balance()
+        available = wallet.get_available_balance()
+        print(f"[Wallet] Balance: ${balance}, Available: ${available}, Initial: ${wallet.initial_balance}")
+        
         return {
-            "balance": wallet.get_balance(),
+            "balance": balance,
             "initial_balance": wallet.initial_balance,
-            "available_balance": wallet.get_available_balance(),
+            "available_balance": available,
             "performance": wallet.get_performance_metrics().to_dict(),
             "transaction_count": len(wallet.transactions)
         }
     except Exception as e:
+        print(f"[Wallet] Error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/wallet/transactions")
@@ -624,9 +630,7 @@ async def get_wallet_performance():
 async def reset_wallet():
     """Reset wallet to initial state (dev only)"""
     try:
-        if Config.ENVIRONMENT != "development":
-            raise HTTPException(status_code=403, detail="Wallet reset only allowed in development")
-        
+        # Allow reset in any environment for now
         wallet = get_wallet()
         wallet.reset()
         
@@ -637,10 +641,32 @@ async def reset_wallet():
         return {
             "success": True,
             "message": "Wallet and positions reset to initial state",
-            "new_balance": wallet.get_balance()
+            "new_balance": wallet.get_balance(),
+            "initial_balance": wallet.initial_balance
         }
     except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/wallet/init")
+async def init_wallet():
+    """Initialize wallet if needed"""
+    try:
+        wallet = get_wallet()
+        current_balance = wallet.get_balance()
+        
+        # If wallet has no balance, reset it
+        if current_balance <= 0:
+            wallet.reset()
+            print(f"[Wallet] Initialized with ${wallet.initial_balance}")
+        
+        return {
+            "balance": wallet.get_balance(),
+            "initial_balance": wallet.initial_balance,
+            "available_balance": wallet.get_available_balance(),
+            "initialized": True
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

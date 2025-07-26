@@ -190,9 +190,31 @@ export default function OpportunityCard({ pool, onAnalyze, onEnterPosition }: Op
             </>
           )}
         </button>
-        <button onClick={handleView} className="btn-ghost">
+        <button onClick={handleView} className="btn-ghost" title="View on Solscan">
           <ExternalLinkIcon className="w-4 h-4" />
         </button>
+      </div>
+      
+      {/* DEX Links */}
+      <div className="mt-3 flex gap-2">
+        <a
+          href={`https://raydium.io/swap/?inputMint=So11111111111111111111111111111111111111112&outputMint=${pool.token_a_mint || pool.pool_address}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn-ghost text-xs flex-1"
+        >
+          <ExternalLinkIcon className="w-3 h-3 mr-1" />
+          Trade on Raydium
+        </a>
+        <a
+          href={`https://jup.ag/swap/SOL-${pool.token_a_mint || pool.pool_address}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn-ghost text-xs flex-1"
+        >
+          <ExternalLinkIcon className="w-3 h-3 mr-1" />
+          Trade on Jupiter
+        </a>
       </div>
 
       {/* Footer */}
