@@ -93,18 +93,33 @@ Communication style:
             else:
                 pools_data = []
             
-            # Combine Raydium and DeFiLlama pools
-            all_pools = raydium_pools + pools_data
-            
-            # Remove duplicates and sort by APY
-            unique_pools = {}
-            for pool in all_pools:
-                pool_id = pool.get("pool_address", pool.get("pool", ""))
-                if pool_id and (pool_id not in unique_pools or pool.get("real_address", False)):
-                    unique_pools[pool_id] = pool
-            
-            final_pools = list(unique_pools.values())
-            final_pools.sort(key=lambda x: x.get("apy", x.get("estimated_apy", 0)), reverse=True)
+            # Prioritize Raydium pools with real addresses
+            # Only use DeFiLlama if we don't have enough Raydium pools
+            if len(raydium_pools) >= 10:
+                # We have enough real pools from Raydium
+                final_pools = raydium_pools
+            else:
+                # Need to supplement with DeFiLlama data
+                # But filter out UUID-style addresses
+                filtered_defi_pools = []
+                for pool in pools_data:
+                    pool_addr = pool.get("pool_address", "")
+                    # Skip UUID-style addresses (contain dashes)
+                    if pool_addr and "-" not in pool_addr and len(pool_addr) > 30:
+                        filtered_defi_pools.append(pool)
+                
+                # Combine Raydium and filtered DeFi pools
+                all_pools = raydium_pools + filtered_defi_pools
+                
+                # Remove duplicates and sort by APY
+                unique_pools = {}
+                for pool in all_pools:
+                    pool_id = pool.get("pool_address", pool.get("pool", ""))
+                    if pool_id and (pool_id not in unique_pools or pool.get("real_address", False)):
+                        unique_pools[pool_id] = pool
+                
+                final_pools = list(unique_pools.values())
+                final_pools.sort(key=lambda x: x.get("apy", x.get("estimated_apy", 0)), reverse=True)
             
             return {
                 "agent": "ScannerAgent",
@@ -115,7 +130,7 @@ Communication style:
                     "min_apy": min_apy,
                     "max_age_hours": max_age_hours
                 },
-                "data_sources": ["Raydium", "DeFiLlama"]
+                "data_sources": ["Raydium" if len(raydium_pools) > 0 else "DeFiLlama"]
             }
         except Exception as e:
             print(f"Scanner error: {str(e)}")
