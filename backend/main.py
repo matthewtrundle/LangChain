@@ -67,6 +67,14 @@ class ExitPositionRequest(BaseModel):
 async def root():
     return {"message": "Solana Degen Hunter Multi-Agent API", "status": "online", "agents": 4}
 
+# Global progress tracker
+progress_tracker = {}
+
+@app.get("/progress/{task_id}")
+async def get_progress(task_id: str):
+    """Get progress of a running task"""
+    return progress_tracker.get(task_id, {"status": "not_found"})
+
 @app.post("/hunt")
 async def hunt_yields(request: HuntRequest):
     """Hunt for yields using multi-agent coordination"""
@@ -80,8 +88,39 @@ async def hunt_yields(request: HuntRequest):
         if cached:
             return {**cached, "cached": True}
         
-        # Execute hunt
+        # Add debug logging
+        print(f"[API] Starting hunt with query: {request.query}")
+        start_time = datetime.now()
+        
+        # Create task ID for progress tracking
+        task_id = f"hunt_{cache_key}"
+        progress_tracker[task_id] = {
+            "status": "scanning",
+            "phase": "discovery",
+            "progress": 10,
+            "message": "Scanner Agent discovering pools..."
+        }
+        
+        # Execute hunt with progress updates
+        print("[API] Phase 1: Scanner Agent starting...")
         result = coordinator.hunt_opportunities(request.query)
+        
+        # Update progress during execution (in real app, this would be async)
+        progress_tracker[task_id] = {
+            "status": "analyzing",
+            "phase": "analysis",
+            "progress": 50,
+            "message": "Analyzer Agent calculating risk scores..."
+        }
+        
+        # Calculate time taken
+        time_taken = (datetime.now() - start_time).total_seconds()
+        print(f"[API] Hunt completed in {time_taken:.2f} seconds")
+        print(f"[API] Found {len(result.get('results', {}).get('discovery', {}).get('top_opportunities', []))} pools")
+        
+        # Add execution metadata
+        result['execution_time'] = time_taken
+        result['agents_used'] = ['scanner', 'analyzer', 'monitor', 'coordinator']
         
         # Cache result
         rate_limiter.cache_response(f"hunt_{cache_key}", result)
@@ -90,6 +129,7 @@ async def hunt_yields(request: HuntRequest):
     except HTTPException:
         raise
     except Exception as e:
+        print(f"[API] Hunt error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/scan/raydium")

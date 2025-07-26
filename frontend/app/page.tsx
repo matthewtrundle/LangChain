@@ -32,10 +32,14 @@ export default function Home() {
   const handleSearch = async (query: string) => {
     setIsLoading(true)
     setLastQuery(query)
-    setAgentResponse('')
+    setAgentResponse('🔍 Initializing agent system...')
     
     try {
       console.log('Starting hunt with query:', query)
+      
+      // Show progress updates
+      setAgentResponse('🤖 Scanner Agent: Discovering pools...')
+      
       const response: CoordinatorResponse = await apiClient.hunt(query)
       console.log('Hunt response:', response)
       
@@ -44,16 +48,20 @@ export default function Home() {
         const discoveredPools = response.results?.discovery?.top_opportunities || []
         console.log('Discovered pools:', discoveredPools)
         
+        // Show execution time if available
+        const execTime = (response as any).execution_time
+        const timeMsg = execTime ? ` (${execTime.toFixed(1)}s)` : ''
+        
         setPools(discoveredPools)
-        setAgentResponse(response.coordination_summary || 'Search completed')
+        setAgentResponse(`✅ ${response.coordination_summary || 'Search completed'}${timeMsg}`)
         
         setScanStats({
           found: discoveredPools.length,
-          sources: ['Multi-Agent System']
+          sources: (response as any).agents_used || ['Multi-Agent System']
         })
       } else {
         console.error('Hunt failed - response not successful:', response)
-        setAgentResponse((response as any).error || 'Failed to process request')
+        setAgentResponse(`❌ ${(response as any).error || 'Failed to process request'}`)
       }
     } catch (error) {
       console.error('Hunt failed:', error)
