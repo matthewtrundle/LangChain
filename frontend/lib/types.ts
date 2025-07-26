@@ -30,7 +30,6 @@ export interface Pool {
   real_address?: boolean
   solscan_url?: string
   fee_tier?: string
-  volume_7d?: number
 }
 
 export interface ScanResult {
