@@ -109,12 +109,26 @@ export default function OpportunityCard({ pool, onAnalyze, onEnterPosition }: Op
           <div className={`text-3xl font-bold ${getApyTextClass(apy)} group-hover:scale-110 transition-transform`}>
             {apy.toFixed(1)}%
           </div>
-          <div className="text-xs text-text-tertiary uppercase tracking-wide">APY</div>
+          <div className="text-xs text-text-tertiary uppercase tracking-wide">APY (24h)</div>
+          {(pool.apy_7d !== undefined || pool.apy_1h !== undefined) && (
+            <div className="mt-1 space-y-1">
+              {pool.apy_1h !== undefined && (
+                <div className="text-xs text-text-tertiary">
+                  1h: {pool.apy_1h.toFixed(1)}%
+                </div>
+              )}
+              {pool.apy_7d !== undefined && (
+                <div className="text-xs text-text-tertiary">
+                  7d: {pool.apy_7d.toFixed(1)}%
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Metrics Grid */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-2 gap-4 mb-4">
         <div className="bg-terminal-surface/50 rounded-lg p-3">
           <div className="flex items-center gap-2 mb-1">
             <DollarSignIcon className="w-4 h-4 text-text-tertiary" />
@@ -128,6 +142,19 @@ export default function OpportunityCard({ pool, onAnalyze, onEnterPosition }: Op
             <span className="text-xs text-text-tertiary uppercase tracking-wide">24h Volume</span>
           </div>
           <div className="text-lg font-semibold text-text-primary">{formatValue(pool.volume_24h)}</div>
+          {pool.volume_7d && (
+            <div className="text-xs text-text-tertiary mt-1">
+              7d: {formatValue(pool.volume_7d)}
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {/* APY Info */}
+      <div className="bg-terminal-surface/30 rounded-lg p-2 mb-4 text-xs text-text-tertiary">
+        <div className="flex items-center gap-1">
+          <AlertTriangleIcon className="w-3 h-3" />
+          <span>APY calculated from trading fees (0.25% of volume)</span>
         </div>
       </div>
 

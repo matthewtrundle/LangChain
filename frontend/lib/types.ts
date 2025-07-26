@@ -8,8 +8,13 @@ export interface Pool {
   token_b_mint?: string
   apy: number
   estimated_apy?: number
+  apy_24h?: number
+  apy_7d?: number
+  apy_1h?: number
   tvl: number
   volume_24h: number
+  volume_7d?: number
+  volume_1h?: number
   age_days?: number
   age_hours?: number
   creator?: string

@@ -70,14 +70,33 @@ class RadiumScannerTool(BaseTool):
                     liquidity = float(pool.get("liquidity", 0))
                     volume_24h = float(pool.get("volume24h", 0))
                     volume_7d = float(pool.get("volume7d", 0))
+                    volume_1h = float(pool.get("volume1h", 0)) if "volume1h" in pool else volume_24h / 24
                     
-                    # Calculate APY based on fees (0.25% of volume)
+                    # Calculate APY for different timeframes based on fees (0.25% of volume)
+                    apy_24h = 0
+                    apy_7d = 0
+                    apy_1h = 0
+                    
                     if liquidity > 0:
-                        daily_fees = volume_24h * 0.0025
-                        daily_yield = (daily_fees / liquidity) * 100
-                        apy = daily_yield * 365
-                    else:
-                        apy = 0
+                        # 24-hour APY (current default)
+                        daily_fees_24h = volume_24h * 0.0025
+                        daily_yield_24h = (daily_fees_24h / liquidity) * 100
+                        apy_24h = daily_yield_24h * 365
+                        
+                        # 7-day APY (more stable, less affected by spikes)
+                        if volume_7d > 0:
+                            daily_avg_volume_7d = volume_7d / 7
+                            daily_fees_7d = daily_avg_volume_7d * 0.0025
+                            daily_yield_7d = (daily_fees_7d / liquidity) * 100
+                            apy_7d = daily_yield_7d * 365
+                        
+                        # 1-hour APY (for very recent activity)
+                        hourly_fees = volume_1h * 0.0025
+                        hourly_yield = (hourly_fees / liquidity) * 100
+                        apy_1h = hourly_yield * 24 * 365
+                    
+                    # Use 24h APY as default
+                    apy = apy_24h
                     
                     # Filter by criteria
                     if apy >= min_apy and liquidity >= min_tvl:
@@ -90,9 +109,13 @@ class RadiumScannerTool(BaseTool):
                             "token_b_mint": quote_mint,
                             "token_symbols": f"{base_symbol}-{quote_symbol}",
                             "apy": round(apy, 2),
+                            "apy_24h": round(apy_24h, 2),
+                            "apy_7d": round(apy_7d, 2),
+                            "apy_1h": round(apy_1h, 2),
                             "tvl": round(liquidity, 2),
                             "volume_24h": round(volume_24h, 2),
                             "volume_7d": round(volume_7d, 2),
+                            "volume_1h": round(volume_1h, 2),
                             "fee_tier": "0.25%",
                             "source": "Raydium_API",
                             "real_address": True,
