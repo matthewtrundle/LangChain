@@ -191,34 +191,53 @@ Communication style:
         """Execute discovery-focused workflow"""
         intent = workflow["intent"]
         
-        # Step 1: Scan for opportunities
-        scan_result = self.scanner_agent.scan_new_opportunities(
-            min_apy=intent["min_apy"],
-            max_age_hours=intent["max_age_hours"]
-        )
+        # Step 1: Scan for opportunities with error handling
+        try:
+            scan_result = self.scanner_agent.scan_new_opportunities(
+                min_apy=intent["min_apy"],
+                max_age_hours=intent["max_age_hours"]
+            )
+        except Exception as e:
+            print(f"[Coordinator] Scanner agent failed: {e}")
+            scan_result = {
+                "error": f"Scanner failed: {str(e)}",
+                "opportunities": [],
+                "pools_found": 0
+            }
         
         workflow["steps"].append({
             "step": "SCAN",
             "agent": "ScannerAgent",
-            "result": scan_result
+            "result": scan_result,
+            "success": "error" not in scan_result
         })
         
         # Step 2: Analyze top opportunities
-        if scan_result.get("opportunities"):
+        if scan_result.get("opportunities") and "error" not in scan_result:
             top_pools = scan_result["opportunities"][:3]  # Top 3
-            analyses = self.analyzer_agent.batch_analyze(top_pools)
+            
+            try:
+                analyses = self.analyzer_agent.batch_analyze(top_pools)
+            except Exception as e:
+                print(f"[Coordinator] Analyzer agent failed: {e}")
+                analyses = {
+                    "error": f"Analysis failed: {str(e)}",
+                    "analyzed_pools": []
+                }
             
             workflow["steps"].append({
                 "step": "ANALYZE",
                 "agent": "AnalyzerAgent",
-                "result": analyses
+                "result": analyses,
+                "success": "error" not in analyses
             })
             
             return {
                 "workflow_type": "DISCOVERY",
                 "opportunities_found": len(scan_result.get("opportunities", [])),
-                "top_opportunities": analyses,
-                "scan_details": scan_result
+                "top_opportunities": analyses if "error" not in analyses else [],
+                "scan_details": scan_result,
+                "errors": [step["result"].get("error") for step in workflow["steps"] if "error" in step.get("result", {})]
             }
         
         return {

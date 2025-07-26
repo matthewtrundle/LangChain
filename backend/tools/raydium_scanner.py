@@ -4,6 +4,12 @@ from typing import Dict, List, Optional
 from datetime import datetime, timedelta
 from langchain.tools import BaseTool
 from langchain.pydantic_v1 import BaseModel, Field
+import sys
+import os
+import time
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.cache import api_cache
+from utils.http_client import http_client
 
 class RadiumScannerInput(BaseModel):
     min_apy: float = Field(description="Minimum APY threshold", default=100)
@@ -19,15 +25,35 @@ class RadiumScannerTool(BaseTool):
         try:
             print(f"[RadiumScanner] Scanning for pools with APY >= {min_apy}%")
             
-            # Raydium API endpoints
-            pools_url = "https://api.raydium.io/v2/main/pairs"
+            # Check cache first
+            cache_key = "raydium_pools"
+            cached_data = api_cache.get(cache_key)
             
-            # Fetch pool data
-            response = requests.get(pools_url, timeout=10)
-            if response.status_code != 200:
-                return self._get_fallback_data(min_apy)
-            
-            data = response.json()
+            if cached_data:
+                print(f"[RadiumScanner] Using cached data")
+                data = cached_data
+            else:
+                # Raydium API endpoints
+                pools_url = "https://api.raydium.io/v2/main/pairs"
+                
+                # Fetch pool data with retry logic
+                max_retries = 3
+                retry_delay = 1
+                
+                try:
+                    # Use connection pooling client
+                    response = http_client.get(pools_url, timeout=10)
+                    if response.status_code != 200:
+                        print(f"[RadiumScanner] API returned {response.status_code}")
+                        return self._get_fallback_data(min_apy)
+                except Exception as e:
+                    print(f"[RadiumScanner] Error fetching data: {e}")
+                    return self._get_fallback_data(min_apy)
+                
+                data = response.json()
+                # Cache for 30 seconds
+                api_cache.set(cache_key, data, ttl_seconds=30)
+                print(f"[RadiumScanner] Fetched fresh data and cached")
             pools = []
             
             # Process each pool

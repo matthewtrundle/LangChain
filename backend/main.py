@@ -1,10 +1,11 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 import json
 import hashlib
 from datetime import datetime
+import asyncio
 
 from agents.coordinator_agent import CoordinatorAgent
 from agents.scanner_agent import ScannerAgent
@@ -16,6 +17,8 @@ from middleware.rate_limiter import rate_limiter, check_api_limit
 from services.position_manager import position_manager
 from models.position import Position, PositionStatus
 from services.wallet_service import get_wallet, TransactionType
+from utils.performance import perf_monitor
+from websocket_manager import ws_manager
 
 app = FastAPI(title="Solana Degen Hunter Multi-Agent API", version="2.0.0")
 
@@ -67,6 +70,35 @@ class ExitPositionRequest(BaseModel):
 async def root():
     return {"message": "Solana Degen Hunter Multi-Agent API", "status": "online", "agents": 4}
 
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for monitoring"""
+    try:
+        # Check if we can reach Raydium
+        raydium_ok = False
+        try:
+            import requests
+            resp = requests.get("https://api.raydium.io/v2/main/pairs", timeout=2)
+            raydium_ok = resp.status_code == 200
+        except:
+            pass
+        
+        # Check agent status
+        agents_ok = all([scanner, analyzer, monitor, coordinator])
+        
+        return {
+            "status": "healthy" if raydium_ok and agents_ok else "degraded",
+            "services": {
+                "raydium_api": "up" if raydium_ok else "down",
+                "agents": "up" if agents_ok else "down",
+                "database": "up",  # Always up since we use in-memory
+                "cache": "up"
+            },
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        return {"status": "unhealthy", "error": str(e)}
+
 # Global progress tracker
 progress_tracker = {}
 
@@ -76,20 +108,31 @@ async def get_progress(task_id: str):
     return progress_tracker.get(task_id, {"status": "not_found"})
 
 @app.post("/hunt")
+@perf_monitor.track_execution("hunt_yields")
 async def hunt_yields(request: HuntRequest):
     """Hunt for yields using multi-agent coordination"""
     try:
+        # Validate input
+        if not request.query or len(request.query.strip()) == 0:
+            raise HTTPException(status_code=400, detail="Query cannot be empty")
+        
+        if len(request.query) > 500:
+            raise HTTPException(status_code=400, detail="Query too long (max 500 characters)")
+        
+        # Sanitize query
+        sanitized_query = request.query.strip()
+        
         # Check rate limit
         check_api_limit("/api/hunt")
         
         # Check cache
-        cache_key = hashlib.md5(request.query.encode()).hexdigest()
+        cache_key = hashlib.md5(sanitized_query.encode()).hexdigest()
         cached = rate_limiter.get_cached_response(f"hunt_{cache_key}")
         if cached:
             return {**cached, "cached": True}
         
         # Add debug logging
-        print(f"[API] Starting hunt with query: {request.query}")
+        print(f"[API] Starting hunt with query: {sanitized_query}")
         start_time = datetime.now()
         
         # Create task ID for progress tracking
@@ -101,17 +144,33 @@ async def hunt_yields(request: HuntRequest):
             "message": "Scanner Agent discovering pools..."
         }
         
+        # Broadcast progress via WebSocket
+        await ws_manager.broadcast_progress(
+            task_id=task_id,
+            status="scanning",
+            progress=10,
+            message="Scanner Agent discovering pools..."
+        )
+        
         # Execute hunt with progress updates
         print("[API] Phase 1: Scanner Agent starting...")
-        result = coordinator.hunt_opportunities(request.query)
+        result = coordinator.hunt_opportunities(sanitized_query)
         
-        # Update progress during execution (in real app, this would be async)
+        # Update progress during execution
         progress_tracker[task_id] = {
             "status": "analyzing",
             "phase": "analysis",
             "progress": 50,
             "message": "Analyzer Agent calculating risk scores..."
         }
+        
+        # Broadcast progress update
+        await ws_manager.broadcast_progress(
+            task_id=task_id,
+            status="analyzing",
+            progress=50,
+            message="Analyzer Agent calculating risk scores..."
+        )
         
         # Calculate time taken
         time_taken = (datetime.now() - start_time).total_seconds()
@@ -133,6 +192,7 @@ async def hunt_yields(request: HuntRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/scan/raydium")
+@perf_monitor.track_execution("scan_raydium")
 async def scan_raydium(request: ScanRequest):
     """Scan Raydium for pools with REAL Solana addresses"""
     try:
@@ -163,6 +223,10 @@ async def scan_raydium(request: ScanRequest):
 async def scan_opportunities(request: ScanRequest):
     """Direct scanner agent access"""
     try:
+        # Validate input
+        if request.min_apy < 0 or request.min_apy > 100000:
+            raise HTTPException(status_code=400, detail="Invalid APY range (0-100000)")
+        
         # Check rate limit
         check_api_limit("/api/scan")
         
@@ -197,6 +261,7 @@ async def scan_opportunities(request: ScanRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/analyze")
+@perf_monitor.track_execution("analyze_pool")
 async def analyze_pool(request: AnalyzeRequest):
     """Direct analyzer agent access with enhanced scoring"""
     try:
@@ -426,6 +491,44 @@ async def get_performance_metrics():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/stats")
+async def get_stats():
+    """Get system performance statistics"""
+    from utils.cache import api_cache
+    
+    # Calculate stats
+    active_positions = position_manager.get_active_positions()
+    total_value = sum(p.current_value for p in active_positions)
+    total_pnl = sum(p.pnl_amount for p in active_positions)
+    
+    # Get performance metrics
+    perf_stats = perf_monitor.get_stats()
+    slow_queries = perf_monitor.get_slow_queries(5)
+    
+    return {
+        "system": {
+            "agents_online": 4,
+            "cache_entries": len(api_cache.cache),
+            "rate_limit_remaining": rate_limiter.get_remaining_calls(),
+        },
+        "trading": {
+            "active_positions": len(active_positions),
+            "total_value": round(total_value, 2),
+            "total_pnl": round(total_pnl, 2),
+            "wallet_balance": position_manager.wallet.get_balance()
+        },
+        "api_calls": {
+            "raydium": rate_limiter.call_counts.get("/scan/raydium", 0),
+            "hunt": rate_limiter.call_counts.get("/hunt", 0),
+            "analyze": rate_limiter.call_counts.get("/analyze", 0)
+        },
+        "performance": {
+            "endpoints": perf_stats,
+            "slow_queries": slow_queries
+        },
+        "timestamp": datetime.now().isoformat()
+    }
+
 @app.get("/system/status")
 async def system_status():
     """Get multi-agent system status"""
@@ -546,6 +649,47 @@ async def health_check():
             "has_openrouter_key": bool(Config.OPENROUTER_API_KEY),
             "environment": Config.ENVIRONMENT
         }
+    }
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    """WebSocket endpoint for real-time updates"""
+    await ws_manager.connect(websocket)
+    try:
+        while True:
+            # Receive messages from client
+            data = await websocket.receive_json()
+            
+            # Handle different message types
+            if data.get("type") == "subscribe":
+                channels = data.get("channels", [])
+                await ws_manager.subscribe(websocket, channels)
+            elif data.get("type") == "ping":
+                await ws_manager.send_personal_message({"type": "pong"}, websocket)
+            else:
+                await ws_manager.send_personal_message({
+                    "type": "error",
+                    "message": "Unknown message type"
+                }, websocket)
+                
+    except WebSocketDisconnect:
+        ws_manager.disconnect(websocket)
+    except Exception as e:
+        print(f"[WS] Error: {e}")
+        ws_manager.disconnect(websocket)
+
+@app.get("/ws/status")
+async def websocket_status():
+    """Get WebSocket connection status"""
+    return {
+        "active_connections": len(ws_manager.active_connections),
+        "connection_info": [
+            {
+                "connected_at": info["connected_at"],
+                "subscriptions": list(info["subscriptions"])
+            }
+            for info in ws_manager.connection_info.values()
+        ]
     }
 
 if __name__ == "__main__":
