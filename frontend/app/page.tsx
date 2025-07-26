@@ -201,10 +201,11 @@ export default function Home() {
     })
     
     // Apply age filter
-    if (filters.showOnlyNew && filters.maxAge) {
+    if (filters.showOnlyNew && filters.maxAge !== null) {
+      const maxAge = filters.maxAge
       filtered = filtered.filter(pool => {
         const age = pool.age_hours || (pool.age_days ? pool.age_days * 24 : 24)
-        return age <= filters.maxAge
+        return age <= maxAge
       })
     }
     
