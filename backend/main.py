@@ -280,23 +280,89 @@ async def analyze_pool(request: AnalyzeRequest):
         # Check rate limit
         check_api_limit("/api/analyze")
         
-        # Try to find pool data from recent scans (in production, would query blockchain)
-        # For now, create realistic mock data based on pool address
-        pool_data = {
-            "pool_address": request.pool_address,
-            "protocol": "raydium",  # Most common on Solana
-            "token_a": "UNKNOWN",
-            "token_b": "SOL",
-            "token_symbols": "UNKNOWN/SOL",
-            "apy": 850.0,  # Realistic high APY
-            "estimated_apy": 850.0,
-            "tvl": 125000,  # $125k TVL
-            "volume_24h": 45000,  # $45k volume
-            "age_hours": 12,  # 12 hours old
-            "creator": request.pool_address[:8] + "...",
-            "liquidity_locked": False,
-            "source": "Analyzer Mock Data"
-        }
+        # Try to fetch real pool data from Raydium
+        pool_data = None
+        try:
+            # First try to get from Raydium API
+            from utils.cache import api_cache
+            from utils.http_client import http_client
+            
+            # Check cache for recent Raydium data
+            cached_pools = api_cache.get("raydium_pools")
+            if cached_pools:
+                # Find the specific pool
+                for pool in cached_pools:
+                    if pool.get("ammId") == request.pool_address:
+                        # Found it! Extract real data
+                        pool_data = {
+                            "pool_address": request.pool_address,
+                            "protocol": "raydium",
+                            "token_a": pool.get("name", "").split("-")[0] if "-" in pool.get("name", "") else "UNKNOWN",
+                            "token_b": pool.get("name", "").split("-")[1] if "-" in pool.get("name", "") else "SOL",
+                            "token_symbols": pool.get("name", "UNKNOWN/SOL"),
+                            "apy": float(pool.get("apy", 0)) * 100 if pool.get("apy") else 850.0,
+                            "tvl": float(pool.get("liquidity", 125000)),
+                            "volume_24h": float(pool.get("volume24h", 45000)),
+                            "age_hours": 24,  # Default, would need on-chain data
+                            "liquidity_locked": False,
+                            "source": "Raydium_Live"
+                        }
+                        break
+            
+            # If not found in cache, fetch fresh data
+            if not pool_data:
+                response = http_client.get("https://api.raydium.io/v2/main/pairs", timeout=5)
+                if response.status_code == 200:
+                    pools = response.json()
+                    for pool in pools:
+                        if pool.get("ammId") == request.pool_address:
+                            # Calculate APY from volume and fees
+                            liquidity = float(pool.get("liquidity", 0))
+                            volume_24h = float(pool.get("volume24h", 0))
+                            apy = 0
+                            if liquidity > 0:
+                                daily_fees = volume_24h * 0.0025
+                                daily_yield = (daily_fees / liquidity) * 100
+                                apy = daily_yield * 365
+                            
+                            pool_data = {
+                                "pool_address": request.pool_address,
+                                "protocol": "raydium",
+                                "token_a": pool.get("name", "").split("-")[0] if "-" in pool.get("name", "") else "UNKNOWN",
+                                "token_b": pool.get("name", "").split("-")[1] if "-" in pool.get("name", "") else "SOL",
+                                "token_symbols": pool.get("name", "UNKNOWN/SOL"),
+                                "apy": round(apy, 2),
+                                "tvl": round(liquidity, 2),
+                                "volume_24h": round(volume_24h, 2),
+                                "age_hours": 24,
+                                "liquidity_locked": False,
+                                "source": "Raydium_Fresh"
+                            }
+                            break
+        except Exception as e:
+            print(f"[Analyze] Error fetching pool data: {e}")
+        
+        # Fallback to basic data if not found
+        if not pool_data:
+            pool_data = {
+                "pool_address": request.pool_address,
+                "protocol": "raydium",
+                "token_a": "UNKNOWN",
+                "token_b": "SOL",
+                "token_symbols": "UNKNOWN/SOL",
+                "apy": 850.0,
+                "tvl": 125000,
+                "volume_24h": 45000,
+                "age_hours": 12,
+                "creator": request.pool_address[:8] + "...",
+                "liquidity_locked": False,
+                "source": "Fallback_Data"
+            }
+        
+        # Log pool data for debugging
+        print(f"[Analyze] Analyzing pool {request.pool_address}")
+        print(f"[Analyze] Pool data source: {pool_data.get('source')}")
+        print(f"[Analyze] APY: {pool_data.get('apy')}%, TVL: ${pool_data.get('tvl'):,.0f}")
         
         # Use DegenScorerTool directly for detailed scoring
         from tools.degen_scorer import DegenScorerTool
@@ -306,7 +372,9 @@ async def analyze_pool(request: AnalyzeRequest):
         # Parse the score result
         try:
             score_data = json.loads(score_result)
-        except:
+            print(f"[Analyze] Degen score: {score_data.get('degen_score')}/10")
+        except Exception as e:
+            print(f"[Analyze] Score parsing error: {e}")
             score_data = {"error": "Failed to calculate score"}
         
         # Run the analyzer agent for narrative analysis
