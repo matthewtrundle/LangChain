@@ -66,6 +66,16 @@ class ExitPositionRequest(BaseModel):
 async def root():
     return {"message": "Solana Degen Hunter Multi-Agent API", "status": "online", "agents": 4}
 
+@app.get("/test")
+async def test_endpoint():
+    """Simple test endpoint to verify connectivity"""
+    return {
+        "status": "ok",
+        "message": "Backend is reachable",
+        "timestamp": datetime.now().isoformat(),
+        "cors_test": "If you see this, CORS is working"
+    }
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint for monitoring"""
@@ -120,6 +130,7 @@ async def get_progress(task_id: str):
 async def hunt_yields(request: HuntRequest):
     """Hunt for yields using multi-agent coordination"""
     try:
+        print(f"[Hunt] Received request with query: {request.query}")
         # Validate input
         if not request.query or len(request.query.strip()) == 0:
             raise HTTPException(status_code=400, detail="Query cannot be empty")
@@ -140,11 +151,13 @@ async def hunt_yields(request: HuntRequest):
             return {**cached, "cached": True}
         
         # Add debug logging
-        print(f"[API] Starting hunt with query: {sanitized_query}")
+        print(f"[API] Starting hunt with sanitized query: {sanitized_query}")
         start_time = datetime.now()
         
         # Create task ID for progress tracking
         task_id = f"hunt_{cache_key}"
+        
+        print(f"[API] Calling coordinator.hunt_opportunities...")
         progress_tracker[task_id] = {
             "status": "scanning",
             "phase": "discovery",
@@ -162,7 +175,12 @@ async def hunt_yields(request: HuntRequest):
         
         # Execute hunt with progress updates
         print("[API] Phase 1: Scanner Agent starting...")
-        result = coordinator.hunt_opportunities(sanitized_query)
+        try:
+            result = coordinator.hunt_opportunities(sanitized_query)
+            print(f"[API] Coordinator returned: {result.get('success', False)}")
+        except Exception as coord_error:
+            print(f"[API] Coordinator error: {str(coord_error)}")
+            raise
         
         # Update progress during execution
         progress_tracker[task_id] = {

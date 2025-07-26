@@ -23,19 +23,33 @@ export class ApiClient {
   }
 
   async hunt(query: string): Promise<CoordinatorResponse> {
-    const response = await fetch(`${this.baseUrl}/hunt`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ query }),
-    })
+    try {
+      console.log('Sending hunt request to:', `${this.baseUrl}/hunt`)
+      console.log('Query:', query)
+      
+      const response = await fetch(`${this.baseUrl}/hunt`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query }),
+      })
 
-    if (!response.ok) {
-      throw new Error(`Hunt failed: ${response.statusText}`)
+      console.log('Response status:', response.status)
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Hunt error response:', errorText)
+        throw new Error(`Hunt failed (${response.status}): ${response.statusText}`)
+      }
+
+      const data = await response.json()
+      console.log('Hunt response data:', data)
+      return data
+    } catch (error: any) {
+      console.error('Hunt request failed:', error)
+      throw error
     }
-
-    return response.json()
   }
 
   async scan(minApy: number = 500, maxAgeHours: number = 48): Promise<ScanResult> {

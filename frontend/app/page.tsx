@@ -77,9 +77,27 @@ export default function Home() {
         console.error('Hunt failed - response not successful:', response)
         setAgentResponse(`❌ ${(response as any).error || 'Failed to process request'}`)
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Hunt failed:', error)
-      setAgentResponse('Error: Unable to connect to agent system')
+      
+      // Better error messages
+      if (error.message?.includes('NetworkError') || error.message?.includes('Failed to fetch')) {
+        setAgentResponse('❌ Network error: Backend API is not reachable. Please check if the backend is running.')
+      } else if (error.message?.includes('CORS')) {
+        setAgentResponse('❌ CORS error: Cross-origin request blocked. Backend needs to allow frontend domain.')
+      } else if (error.status === 500) {
+        setAgentResponse('❌ Server error: Backend encountered an error. Check backend logs.')
+      } else {
+        setAgentResponse(`❌ Error: ${error.message || 'Unable to connect to agent system'}`)
+      }
+      
+      // Log full error details
+      console.error('Full error details:', {
+        message: error.message,
+        status: error.status,
+        stack: error.stack,
+        response: error.response
+      })
     } finally {
       setIsLoading(false)
     }
