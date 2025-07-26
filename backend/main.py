@@ -88,6 +88,18 @@ async def health_check():
         
         return {
             "status": "healthy" if raydium_ok and agents_ok else "degraded",
+            "system": "multi-agent",
+            "agents": {
+                "coordinator": "initialized" if coordinator else "error",
+                "scanner": "initialized" if scanner else "error", 
+                "analyzer": "initialized" if analyzer else "error",
+                "monitor": "initialized" if monitor else "error"
+            },
+            "config": {
+                "has_helius_key": bool(Config.HELIUS_API_KEY),
+                "has_openrouter_key": bool(Config.OPENROUTER_API_KEY),
+                "environment": Config.ENVIRONMENT or "production"
+            },
             "services": {
                 "raydium_api": "up" if raydium_ok else "down",
                 "agents": "up" if agents_ok else "down",
@@ -632,24 +644,7 @@ async def reset_wallet():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/health")
-async def health_check():
-    """Health check endpoint"""
-    return {
-        "status": "healthy",
-        "system": "multi-agent",
-        "agents": {
-            "coordinator": "initialized",
-            "scanner": "initialized", 
-            "analyzer": "initialized",
-            "monitor": "initialized"
-        },
-        "config": {
-            "has_helius_key": bool(Config.HELIUS_API_KEY),
-            "has_openrouter_key": bool(Config.OPENROUTER_API_KEY),
-            "environment": Config.ENVIRONMENT
-        }
-    }
+# Removed duplicate health endpoint - using the one at line 73
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):

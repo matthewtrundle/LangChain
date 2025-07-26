@@ -135,7 +135,7 @@ export default function SystemStatus({ className }: SystemStatusProps) {
         {/* System Info */}
         <div className="border-t border-degen-border pt-4">
           <div className="flex items-center justify-between text-xs text-text-tertiary">
-            <span>Environment: {health?.config?.environment || 'Unknown'}</span>
+            <span>Environment: {health?.config?.environment || 'Production'}</span>
             <span>Version: 2.0.0</span>
           </div>
         </div>
