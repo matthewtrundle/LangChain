@@ -286,6 +286,82 @@ async def scan_opportunities(request: ScanRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/scan/smart")
+async def smart_scan(request: HuntRequest):
+    """Smart scan that parses natural language without agents"""
+    try:
+        query = request.query.lower()
+        print(f"[Smart Scan] Processing query: {query}")
+        
+        # Extract APY from query
+        min_apy = 500  # Default
+        import re
+        
+        # Look for APY patterns
+        apy_patterns = [
+            r'(\d+(?:\.\d+)?)\s*%',  # "1000%" or "1000 %"
+            r'(\d+(?:\.\d+)?)\s*(?:apy|APY)',  # "1000 APY"
+            r'(?:over|above|minimum|min)\s*(\d+(?:\.\d+)?)(?:\s*%)?',  # "over 1000"
+        ]
+        
+        for pattern in apy_patterns:
+            match = re.search(pattern, query)
+            if match:
+                try:
+                    min_apy = float(match.group(1))
+                    break
+                except:
+                    pass
+        
+        # Extract TVL from query
+        min_tvl = 10000  # Default $10k
+        tvl_patterns = [
+            r'(\d+)k\s*(?:tvl|TVL|in\s*tvl)',  # "100k TVL"
+            r'(?:over|above|minimum|min)\s*\$(\d+)k',  # "over $100k"
+            r'(?:over|above|minimum|min)\s*(\d+)k\s*(?:tvl|TVL)',  # "over 100k TVL"
+        ]
+        
+        for pattern in tvl_patterns:
+            match = re.search(pattern, query)
+            if match:
+                try:
+                    min_tvl = float(match.group(1)) * 1000  # Convert k to actual number
+                    break
+                except:
+                    pass
+        
+        print(f"[Smart Scan] Extracted: APY={min_apy}, TVL={min_tvl}")
+        
+        # Use Raydium scanner directly
+        from tools.raydium_scanner import RadiumScannerTool
+        raydium_scanner = RadiumScannerTool()
+        
+        # Run scan
+        result = raydium_scanner._run(
+            min_apy=min_apy,
+            min_tvl=min_tvl
+        )
+        
+        # Parse result
+        scan_data = json.loads(result)
+        
+        return {
+            "source": "Smart Scanner",
+            "found_pools": scan_data.get("found_pools", 0),
+            "pools": scan_data.get("pools", []),
+            "scan_time": scan_data.get("scan_time"),
+            "data_sources": ["Raydium API"],
+            "parsed_params": {
+                "min_apy": min_apy,
+                "min_tvl": min_tvl
+            },
+            "success": True
+        }
+        
+    except Exception as e:
+        print(f"[Smart Scan] Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/analyze")
 @perf_monitor.track_execution("analyze_pool")
 async def analyze_pool(request: AnalyzeRequest):

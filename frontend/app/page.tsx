@@ -78,26 +78,46 @@ export default function Home() {
         setAgentResponse(`❌ ${(response as any).error || 'Failed to process request'}`)
       }
     } catch (error: any) {
-      console.error('Hunt failed:', error)
+      console.error('Hunt failed, trying smart scan fallback:', error)
       
-      // Better error messages
-      if (error.message?.includes('NetworkError') || error.message?.includes('Failed to fetch')) {
-        setAgentResponse('❌ Network error: Backend API is not reachable. Please check if the backend is running.')
-      } else if (error.message?.includes('CORS')) {
-        setAgentResponse('❌ CORS error: Cross-origin request blocked. Backend needs to allow frontend domain.')
-      } else if (error.status === 500) {
-        setAgentResponse('❌ Server error: Backend encountered an error. Check backend logs.')
-      } else {
-        setAgentResponse(`❌ Error: ${error.message || 'Unable to connect to agent system'}`)
+      // Try fallback to smart scan
+      try {
+        setAgentResponse('🔄 Using smart scanner...')
+        
+        const fallbackResponse = await fetch(`${apiClient.baseUrl}/scan/smart`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query })
+        })
+        
+        if (fallbackResponse.ok) {
+          const fallbackData = await fallbackResponse.json()
+          console.log('Smart scan response:', fallbackData)
+          
+          if (fallbackData.pools && fallbackData.pools.length > 0) {
+            setPools(fallbackData.pools)
+            setFilteredPools(fallbackData.pools)
+            setAgentResponse(`✅ Found ${fallbackData.found_pools} opportunities (APY ≥ ${fallbackData.parsed_params?.min_apy || 500}%)`)
+            setScanStats({
+              found: fallbackData.found_pools,
+              sources: fallbackData.data_sources || ['Raydium']
+            })
+          } else {
+            setAgentResponse('❌ No pools found matching your criteria. Try different parameters.')
+          }
+        } else {
+          throw new Error('Smart scan also failed')
+        }
+      } catch (fallbackError) {
+        console.error('Both hunt and smart scan failed:', fallbackError)
+        
+        // Show error messages
+        if (error.message?.includes('NetworkError') || error.message?.includes('Failed to fetch')) {
+          setAgentResponse('❌ Network error: Cannot reach backend API.')
+        } else {
+          setAgentResponse('❌ Search failed. Try using the quick scan buttons instead.')
+        }
       }
-      
-      // Log full error details
-      console.error('Full error details:', {
-        message: error.message,
-        status: error.status,
-        stack: error.stack,
-        response: error.response
-      })
     } finally {
       setIsLoading(false)
     }
