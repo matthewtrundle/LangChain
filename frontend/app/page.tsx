@@ -1,7 +1,7 @@
 'use client'
 
 // Force rebuild - v2
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { debugInfo } from '@/lib/debug'
 import { Pool, ScanResult, CoordinatorResponse } from '@/lib/types'
 import { apiClient } from '@/lib/api'
@@ -379,7 +379,7 @@ export default function Home() {
                 </div>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  {pools.map((pool, index) => (
+                  {filteredPools.map((pool, index) => (
                     <div key={`${pool.pool_address}-${index}`} className="opportunity-card">
                       <OpportunityCard
                         pool={pool}
