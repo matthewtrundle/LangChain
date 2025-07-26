@@ -90,16 +90,30 @@ Communication style:
             else:
                 result = self._execute_comprehensive_workflow(workflow)
             
-            # Add coordination summary
-            task = f"""
-            Workflow completed: {workflow_id}
-            User query: {user_query}
-            Results summary: {json.dumps(result, indent=2)[:500]}...
+            # Try to use LLM for coordination summary, but fallback if it fails
+            coordination_summary = ""
+            try:
+                # Only use LLM if OpenRouter key is available
+                if Config.OPENROUTER_API_KEY:
+                    task = f"""
+                    Workflow completed: {workflow_id}
+                    User query: {user_query}
+                    Results summary: {json.dumps(result, indent=2)[:500]}...
+                    
+                    Provide executive summary and strategic recommendations.
+                    """
+                    coordination_result = self.execute(task)
+                    coordination_summary = coordination_result.get("result", "")
+            except:
+                pass
             
-            Provide executive summary and strategic recommendations.
-            """
-            
-            coordination_result = self.execute(task)
+            # Generate summary without LLM if needed
+            if not coordination_summary:
+                pools_found = result.get("discovery", {}).get("opportunities_found", 0)
+                if pools_found > 0:
+                    coordination_summary = f"Found {pools_found} high-yield opportunities matching your criteria. Highest APY: {intent.get('min_apy', 500)}%+"
+                else:
+                    coordination_summary = "No pools found matching your criteria. Try lowering your APY or TVL requirements."
             
             return {
                 "workflow_id": workflow_id,
@@ -107,7 +121,7 @@ Communication style:
                 "user_query": user_query,
                 "intent": intent,
                 "results": result,
-                "coordination_summary": coordination_result.get("result", ""),
+                "coordination_summary": coordination_summary,
                 "execution_time": datetime.now().isoformat(),
                 "success": True
             }
@@ -125,7 +139,7 @@ Communication style:
         query_lower = query.lower()
         
         # Determine intent type
-        if any(word in query_lower for word in ["find", "scan", "discover", "new"]):
+        if any(word in query_lower for word in ["find", "scan", "discover", "show", "search"]):
             intent_type = "DISCOVER"
         elif any(word in query_lower for word in ["analyze", "risk", "score", "evaluate"]):
             intent_type = "ANALYZE"
@@ -134,15 +148,25 @@ Communication style:
         else:
             intent_type = "COMPREHENSIVE"
         
-        # Extract parameters
+        # Extract APY requirement
         min_apy = 500  # Default
-        if "%" in query:
-            # Try to extract APY requirement
-            try:
-                apy_match = query.split("%")[0].split()[-1]
-                min_apy = float(apy_match)
-            except:
-                pass
+        
+        # Look for patterns like "1000%", "1000 %", "1000 APY"
+        import re
+        apy_patterns = [
+            r'(\d+(?:\.\d+)?)\s*%',  # "1000%" or "1000 %"
+            r'(\d+(?:\.\d+)?)\s*(?:apy|APY)',  # "1000 APY"
+            r'(?:over|above|minimum|min)\s*(\d+(?:\.\d+)?)(?:\s*%)?',  # "over 1000"
+        ]
+        
+        for pattern in apy_patterns:
+            match = re.search(pattern, query)
+            if match:
+                try:
+                    min_apy = float(match.group(1))
+                    break
+                except:
+                    pass
         
         max_age = 48  # Default hours
         if "hour" in query_lower:
@@ -156,10 +180,29 @@ Communication style:
             except:
                 pass
         
+        # Extract TVL requirement
+        min_tvl = 0  # Default
+        tvl_patterns = [
+            r'(\d+)k\s*(?:tvl|TVL|in\s*tvl)',  # "100k TVL"
+            r'(\d+)K\s*(?:tvl|TVL|in\s*tvl)',  # "100K TVL"
+            r'(?:over|above|minimum|min)\s*\$(\d+)k',  # "over $100k"
+            r'(?:over|above|minimum|min)\s*(\d+)k\s*(?:tvl|TVL)',  # "over 100k TVL"
+        ]
+        
+        for pattern in tvl_patterns:
+            match = re.search(pattern, query_lower)
+            if match:
+                try:
+                    min_tvl = float(match.group(1)) * 1000  # Convert k to actual number
+                    break
+                except:
+                    pass
+        
         return {
             "type": intent_type,
             "min_apy": min_apy,
             "max_age_hours": max_age,
+            "min_tvl": min_tvl,
             "risk_tolerance": self._extract_risk_tolerance(query_lower),
             "protocols": self._extract_protocols(query_lower)
         }

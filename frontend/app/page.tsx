@@ -297,6 +297,14 @@ export default function Home() {
               onQuickScan={handleQuickScan}
               isLoading={isLoading}
             />
+            
+            {/* Filter Bar */}
+            {pools.length > 0 && !isLoading && (
+              <FilterBar
+                onFilterChange={setFilters}
+                isExpanded={false}
+              />
+            )}
 
             {/* Loading State - Now simplified since we have the visualizer */}
             {isLoading && (
