@@ -190,31 +190,64 @@ export default function OpportunityCard({ pool, onAnalyze, onEnterPosition }: Op
             </>
           )}
         </button>
-        <button onClick={handleView} className="btn-ghost" title="View on Solscan">
-          <ExternalLinkIcon className="w-4 h-4" />
-        </button>
       </div>
       
-      {/* DEX Links */}
-      <div className="mt-3 flex gap-2">
-        <a
-          href={`https://raydium.io/swap/?inputMint=So11111111111111111111111111111111111111112&outputMint=${pool.token_a_mint || pool.pool_address}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn-ghost text-xs flex-1"
-        >
-          <ExternalLinkIcon className="w-3 h-3 mr-1" />
-          Trade on Raydium
-        </a>
+      {/* Trade Button */}
+      <div className="mt-2">
         <a
           href={`https://jup.ag/swap/SOL-${pool.token_a_mint || pool.pool_address}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="btn-ghost text-xs flex-1"
+          className="btn-secondary w-full flex items-center justify-center"
         >
-          <ExternalLinkIcon className="w-3 h-3 mr-1" />
+          <ExternalLinkIcon className="w-4 h-4 mr-2" />
           Trade on Jupiter
         </a>
+      </div>
+      
+      {/* Analytics Links */}
+      <div className="mt-3 pt-3 border-t border-degen-border">
+        <div className="text-xs text-text-tertiary mb-2">View Analytics & Trade:</div>
+        <div className="grid grid-cols-2 gap-2">
+          <a
+            href={`https://dexscreener.com/solana/${pool.pool_address}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-ghost text-xs"
+          >
+            <ExternalLinkIcon className="w-3 h-3 mr-1" />
+            DexScreener
+          </a>
+          <a
+            href={`https://birdeye.so/token/${pool.token_a_mint || pool.pool_address}?chain=solana`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-ghost text-xs"
+          >
+            <ExternalLinkIcon className="w-3 h-3 mr-1" />
+            Birdeye
+          </a>
+          <a
+            href={`https://solscan.io/account/${pool.pool_address}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-ghost text-xs"
+          >
+            <ExternalLinkIcon className="w-3 h-3 mr-1" />
+            Solscan
+          </a>
+          {pool.protocol === 'raydium' && (
+            <a
+              href={`https://raydium.io/liquidity/increase/?mode=add&pool_id=${pool.pool_address}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-ghost text-xs"
+            >
+              <ExternalLinkIcon className="w-3 h-3 mr-1" />
+              Raydium
+            </a>
+          )}
+        </div>
       </div>
 
       {/* Footer */}
