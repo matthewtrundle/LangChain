@@ -97,28 +97,28 @@ export default function SearchBar({ onSearch, onQuickScan, isLoading }: SearchBa
         <h4 className="text-sm font-medium text-text-tertiary mb-3">Example Queries:</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
           <button
-            onClick={() => setQuery("Find me new Raydium pools with over 1000% APY and locked liquidity")}
+            onClick={() => setQuery("Find pools with 1000% APY minimum")}
             className="text-left text-text-tertiary hover:text-degen-primary transition-colors"
           >
-            "Find me new Raydium pools with over 1000% APY and locked liquidity"
+            "Find pools with 1000% APY minimum"
           </button>
           <button
-            onClick={() => setQuery("Show me the riskiest degen plays on Solana right now")}
+            onClick={() => setQuery("Show high APY pools with over 100k TVL")}
             className="text-left text-text-tertiary hover:text-degen-primary transition-colors"
           >
-            "Show me the riskiest degen plays on Solana right now"
+            "Show high APY pools with over 100k TVL"
           </button>
           <button
-            onClick={() => setQuery("What are the best BONK farming opportunities?")}
+            onClick={() => setQuery("Find new pools less than 24 hours old")}
             className="text-left text-text-tertiary hover:text-degen-primary transition-colors"
           >
-            "What are the best BONK farming opportunities?"
+            "Find new pools less than 24 hours old"
           </button>
           <button
-            onClick={() => setQuery("Find pools less than 24 hours old with high sustainability")}
+            onClick={() => setQuery("Scan for 2000% APY opportunities")}
             className="text-left text-text-tertiary hover:text-degen-primary transition-colors"
           >
-            "Find pools less than 24 hours old with high sustainability"
+            "Scan for 2000% APY opportunities"
           </button>
         </div>
       </div>

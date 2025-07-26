@@ -12,10 +12,12 @@ import AgentFlowVisualizer from '@/components/AgentFlowVisualizer'
 import AnalysisModal from '@/components/AnalysisModal'
 import PositionDashboard from '@/components/PositionDashboard'
 import WalletDashboard from '@/components/WalletDashboard'
+import FilterBar, { FilterOptions } from '@/components/FilterBar'
 import { TrendingUpIcon, ActivityIcon, DatabaseIcon, BriefcaseIcon } from '@/components/icons/Icons'
 
 export default function Home() {
   const [pools, setPools] = useState<Pool[]>([])
+  const [filteredPools, setFilteredPools] = useState<Pool[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [lastQuery, setLastQuery] = useState('')
   const [agentResponse, setAgentResponse] = useState('')
@@ -28,6 +30,17 @@ export default function Home() {
   })
   const [showPositions, setShowPositions] = useState(false)
   const [positionRefreshKey, setPositionRefreshKey] = useState(0)
+  const [filters, setFilters] = useState<FilterOptions>({
+    minApy: 0,
+    maxApy: null,
+    minTvl: 0,
+    maxTvl: null,
+    protocols: [],
+    sortBy: 'apy',
+    sortOrder: 'desc',
+    showOnlyNew: false,
+    maxAge: null
+  })
 
   const handleSearch = async (query: string) => {
     setIsLoading(true)
@@ -53,6 +66,7 @@ export default function Home() {
         const timeMsg = execTime ? ` (${execTime.toFixed(1)}s)` : ''
         
         setPools(discoveredPools)
+        setFilteredPools(discoveredPools) // Reset filtered pools
         setAgentResponse(`✅ ${response.coordination_summary || 'Search completed'}${timeMsg}`)
         
         setScanStats({
@@ -87,6 +101,7 @@ export default function Home() {
       const sources = response.data_sources || ['Scanner Agent']
       
       setPools(pools)
+      setFilteredPools(pools) // Reset filtered pools
       setAgentResponse(`Scanner found ${foundCount} opportunities`)
       
       setScanStats({
@@ -165,6 +180,63 @@ export default function Home() {
       alert('Failed to enter position. Please try again.')
     }
   }
+  
+  // Apply filters to pools
+  useEffect(() => {
+    let filtered = [...pools]
+    
+    // Apply APY filter
+    filtered = filtered.filter(pool => {
+      const apy = pool.apy || pool.estimated_apy || 0
+      if (filters.minApy && apy < filters.minApy) return false
+      if (filters.maxApy && apy > filters.maxApy) return false
+      return true
+    })
+    
+    // Apply TVL filter
+    filtered = filtered.filter(pool => {
+      if (filters.minTvl && pool.tvl < filters.minTvl) return false
+      if (filters.maxTvl && pool.tvl > filters.maxTvl) return false
+      return true
+    })
+    
+    // Apply age filter
+    if (filters.showOnlyNew && filters.maxAge) {
+      filtered = filtered.filter(pool => {
+        const age = pool.age_hours || (pool.age_days ? pool.age_days * 24 : 24)
+        return age <= filters.maxAge
+      })
+    }
+    
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let aVal: number = 0
+      let bVal: number = 0
+      
+      switch (filters.sortBy) {
+        case 'apy':
+          aVal = a.apy || a.estimated_apy || 0
+          bVal = b.apy || b.estimated_apy || 0
+          break
+        case 'tvl':
+          aVal = a.tvl || 0
+          bVal = b.tvl || 0
+          break
+        case 'volume':
+          aVal = a.volume_24h || 0
+          bVal = b.volume_24h || 0
+          break
+        case 'age':
+          aVal = a.age_hours || (a.age_days ? a.age_days * 24 : 24)
+          bVal = b.age_hours || (b.age_days ? b.age_days * 24 : 24)
+          break
+      }
+      
+      return filters.sortOrder === 'desc' ? bVal - aVal : aVal - bVal
+    })
+    
+    setFilteredPools(filtered)
+  }, [pools, filters])
 
   return (
     <div className="min-h-screen bg-terminal-bg relative overflow-hidden">
