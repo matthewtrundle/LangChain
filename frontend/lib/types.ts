@@ -4,6 +4,8 @@ export interface Pool {
   token_symbols: string
   token_a?: string
   token_b?: string
+  token_a_mint?: string
+  token_b_mint?: string
   apy: number
   estimated_apy?: number
   tvl: number
@@ -20,6 +22,10 @@ export interface Pool {
   sustainability_score?: number
   jupiter_pricing?: any
   coingecko_data?: any
+  real_address?: boolean
+  solscan_url?: string
+  fee_tier?: string
+  volume_7d?: number
 }
 
 export interface ScanResult {
