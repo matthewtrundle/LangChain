@@ -25,7 +25,7 @@ class HTTPClient:
             total=3,
             backoff_factor=0.3,
             status_forcelist=[429, 500, 502, 503, 504],
-            method_whitelist=["HEAD", "GET", "OPTIONS"]
+            allowed_methods=["HEAD", "GET", "OPTIONS"]
         )
         
         # Configure adapter with connection pooling
