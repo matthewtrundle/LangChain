@@ -52,6 +52,34 @@ Communication style:
         """Comprehensive pool analysis"""
         pool_address = pool_data.get("pool_address", "")
         
+        # Check if pool has validation data
+        validation = pool_data.get("validation", {})
+        if validation and not validation.get("is_valid", True):
+            return {
+                "agent": "AnalyzerAgent",
+                "pool_address": pool_address,
+                "analysis_complete": False,
+                "error": "Pool failed validation",
+                "validation_errors": validation.get("errors", []),
+                "pool_status": validation.get("status", "UNKNOWN"),
+                "recommendation": "SKIP - Pool is not active or has insufficient liquidity"
+            }
+        
+        # Additional safety checks
+        tvl = pool_data.get('tvl', 0)
+        volume = pool_data.get('volume_24h', 0)
+        
+        if tvl == 0 or volume == 0:
+            return {
+                "agent": "AnalyzerAgent", 
+                "pool_address": pool_address,
+                "analysis_complete": False,
+                "error": "Pool has no liquidity or volume",
+                "tvl": tvl,
+                "volume_24h": volume,
+                "recommendation": "SKIP - Pool appears to be inactive"
+            }
+        
         task = f"""
         Perform comprehensive analysis on pool: {pool_address}
         

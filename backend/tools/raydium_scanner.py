@@ -10,6 +10,7 @@ import time
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.cache import api_cache
 from utils.http_client import http_client
+from tools.pool_validator import PoolValidator
 
 class RadiumScannerInput(BaseModel):
     min_apy: float = Field(description="Minimum APY threshold", default=100)
@@ -24,6 +25,7 @@ class RadiumScannerTool(BaseTool):
         """Scan Raydium for real pools with actual Solana addresses"""
         try:
             print(f"[RadiumScanner] Scanning for pools with APY >= {min_apy}%")
+            validator = PoolValidator()
             
             # Check cache first
             cache_key = "raydium_pools"
@@ -129,16 +131,23 @@ class RadiumScannerTool(BaseTool):
                     print(f"[RadiumScanner] Error processing pool: {e}")
                     continue
             
+            # Validate pools before returning
+            print(f"[RadiumScanner] Validating {len(pools)} pools...")
+            validated_pools = validator.batch_validate(pools)
+            print(f"[RadiumScanner] {len(validated_pools)} pools passed validation")
+            
             # Sort by APY
-            pools.sort(key=lambda x: x.get("apy", 0), reverse=True)
+            validated_pools.sort(key=lambda x: x.get("apy", 0), reverse=True)
             
             return json.dumps({
                 "source": "RAYDIUM_REAL",
-                "found_pools": len(pools),
-                "pools": pools[:20],  # Top 20
+                "found_pools": len(validated_pools),
+                "pools": validated_pools[:20],  # Top 20
                 "scan_time": datetime.now().isoformat(),
                 "min_apy_filter": min_apy,
-                "min_tvl_filter": min_tvl
+                "min_tvl_filter": min_tvl,
+                "validation_applied": True,
+                "filtered_count": len(pools) - len(validated_pools)
             }, indent=2)
             
         except Exception as e:
