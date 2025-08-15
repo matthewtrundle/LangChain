@@ -535,7 +535,7 @@ export default function EnhancedHome() {
               initial={{ y: 100, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 100, opacity: 0 }}
-              transition={{ type: "spring", damping: 25 }}
+              transition={{ type: "spring" as const, damping: 25 }}
               className="min-h-screen px-4 py-8"
             >
               <div className="max-w-7xl mx-auto">

@@ -84,7 +84,7 @@ export default function SuccessCelebration({ show, profit, onComplete }: Success
             animate={{ scale: 1, rotate: 0 }}
             exit={{ scale: 0, rotate: 180 }}
             transition={{
-              type: "spring",
+              type: "spring" as const,
               stiffness: 200,
               damping: 20
             }}
@@ -119,7 +119,7 @@ export default function SuccessCelebration({ show, profit, onComplete }: Success
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                transition={{ delay: 0.5, type: "spring" }}
+                transition={{ delay: 0.5, type: "spring" as const }}
                 className="text-5xl font-bold text-white"
               >
                 +${profit.toLocaleString()}
