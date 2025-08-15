@@ -22,7 +22,7 @@ export default function SuccessCelebration({ show, profit, onComplete }: Success
       const animationEnd = Date.now() + duration
       const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 }
       
-      function randomInRange(min: number, max: number) {
+      const randomInRange = (min: number, max: number) => {
         return Math.random() * (max - min) + min
       }
       
