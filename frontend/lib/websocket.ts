@@ -10,34 +10,8 @@ export interface WebSocketMessage {
   trace_id?: string
 }
 
-export interface PoolDiscoveryMessage {
-  type: 'pool_discovered'
-  pool: {
-    pool_address: string
-    protocol: string
-    token_symbols: string
-    apy: number
-    tvl: number
-    volume_24h: number
-    age_hours: number
-    source: string
-    risk_score?: number
-    sustainability_score?: number
-  }
-}
-
-export interface PositionUpdateMessage {
-  type: 'position_update'
-  position: {
-    id: string
-    pool_address: string
-    current_value: number
-    pnl_usd: number
-    pnl_percent: number
-    il_percent: number
-    fees_earned: number
-  }
-}
+// Note: Pool and Position data is contained in the WebSocketMessage.data field
+// The specific structure depends on the backend implementation
 
 type MessageHandler = (message: WebSocketMessage) => void
 
@@ -256,8 +230,10 @@ export function usePoolDiscovery(onPoolDiscovered: (pool: any) => void) {
   
   useEffect(() => {
     const unsubscribe = subscribe('pool_discovered', (message) => {
-      const poolMessage = message as PoolDiscoveryMessage
-      onPoolDiscovered(poolMessage.pool)
+      // The message has type WebSocketMessage with data field containing the pool
+      if (message.type === 'pool_discovered' && message.data) {
+        onPoolDiscovered(message.data)
+      }
     })
     
     return unsubscribe
@@ -271,8 +247,10 @@ export function usePositionUpdates(onPositionUpdate: (position: any) => void) {
   
   useEffect(() => {
     const unsubscribe = subscribe('position_update', (message) => {
-      const positionMessage = message as PositionUpdateMessage
-      onPositionUpdate(positionMessage.position)
+      // The message has type WebSocketMessage with data field containing the position
+      if (message.type === 'position_update' && message.data) {
+        onPositionUpdate(message.data)
+      }
     })
     
     return unsubscribe
