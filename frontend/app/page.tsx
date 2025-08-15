@@ -1,10 +1,19 @@
 'use client'
 
-// Force rebuild - v2
-import { useState, useEffect } from 'react'
+// Enhanced version with all visual components
+import { useState, useEffect, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { debugInfo } from '@/lib/debug'
 import { Pool, ScanResult, CoordinatorResponse } from '@/lib/types'
 import { apiClient } from '@/lib/api'
+import { useWebSocket, usePoolDiscovery, usePositionUpdates } from '@/lib/websocket'
+
+// Import all our new components
+import AnimatedHero from '@/components/AnimatedHero'
+import PoolDiscoveryNotification from '@/components/PoolDiscoveryNotification'
+import RiskVisualization from '@/components/RiskVisualization'
+import PnLChart from '@/components/PnLChart'
+import SuccessCelebration, { triggerSuccessCelebration } from '@/components/SuccessCelebration'
 import OpportunityCard from '@/components/OpportunityCard'
 import SearchBar from '@/components/SearchBar'
 import SystemStatus from '@/components/SystemStatus'
@@ -12,10 +21,24 @@ import AgentFlowVisualizer from '@/components/AgentFlowVisualizer'
 import AnalysisModal from '@/components/AnalysisModal'
 import PositionDashboard from '@/components/PositionDashboard'
 import WalletDashboard from '@/components/WalletDashboard'
+import WalletDashboardEnhanced from '@/components/WalletDashboardEnhanced'
 import FilterBar, { FilterOptions } from '@/components/FilterBar'
 import { TrendingUpIcon, ActivityIcon, DatabaseIcon, BriefcaseIcon } from '@/components/icons/Icons'
 
-export default function Home() {
+// Mock P&L data for demo
+const mockPnLData = [
+  { timestamp: new Date(Date.now() - 7200000).toISOString(), value: 1000, pnl: 0, fees: 0, il: 0 },
+  { timestamp: new Date(Date.now() - 6300000).toISOString(), value: 1050, pnl: 5, fees: 10, il: 5 },
+  { timestamp: new Date(Date.now() - 5400000).toISOString(), value: 1080, pnl: 8, fees: 20, il: 10 },
+  { timestamp: new Date(Date.now() - 4500000).toISOString(), value: 1120, pnl: 12, fees: 35, il: 15 },
+  { timestamp: new Date(Date.now() - 3600000).toISOString(), value: 1100, pnl: 10, fees: 50, il: 25 },
+  { timestamp: new Date(Date.now() - 2700000).toISOString(), value: 1150, pnl: 15, fees: 70, il: 30 },
+  { timestamp: new Date(Date.now() - 1800000).toISOString(), value: 1180, pnl: 18, fees: 90, il: 35 },
+  { timestamp: new Date(Date.now() - 900000).toISOString(), value: 1220, pnl: 22, fees: 110, il: 40 },
+  { timestamp: new Date(Date.now()).toISOString(), value: 1250, pnl: 25, fees: 130, il: 45 }
+]
+
+export default function EnhancedHome() {
   const [pools, setPools] = useState<Pool[]>([])
   const [filteredPools, setFilteredPools] = useState<Pool[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -30,6 +53,10 @@ export default function Home() {
   })
   const [showPositions, setShowPositions] = useState(false)
   const [positionRefreshKey, setPositionRefreshKey] = useState(0)
+  const [showRiskViz, setShowRiskViz] = useState(false)
+  const [selectedPool, setSelectedPool] = useState<Pool | null>(null)
+  const [showPnLChart, setShowPnLChart] = useState(false)
+  const [showSuccess, setShowSuccess] = useState(false)
   const [filters, setFilters] = useState<FilterOptions>({
     minApy: 0,
     maxApy: null,
@@ -41,6 +68,26 @@ export default function Home() {
     showOnlyNew: false,
     maxAge: null
   })
+
+  // WebSocket hooks
+  const { isConnected } = useWebSocket()
+  
+  // Handle real-time pool discoveries
+  usePoolDiscovery(useCallback((pool: any) => {
+    console.log('New pool discovered via WebSocket:', pool)
+    // Add to pools list with animation
+    setPools(prevPools => [pool, ...prevPools].slice(0, 50)) // Keep max 50 pools
+  }, []))
+  
+  // Handle position updates
+  usePositionUpdates(useCallback((position: any) => {
+    console.log('Position update:', position)
+    // Check if position is profitable
+    if (position.pnl_percent > 20) {
+      setShowSuccess(true)
+      triggerSuccessCelebration(position.pnl_usd)
+    }
+  }, []))
 
   const handleSearch = async (query: string) => {
     setIsLoading(true)
@@ -78,46 +125,8 @@ export default function Home() {
         setAgentResponse(`❌ ${(response as any).error || 'Failed to process request'}`)
       }
     } catch (error: any) {
-      console.error('Hunt failed, trying smart scan fallback:', error)
-      
-      // Try fallback to smart scan
-      try {
-        setAgentResponse('🔄 Using smart scanner...')
-        
-        const fallbackResponse = await fetch(`${apiClient.baseUrl}/scan/smart`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query })
-        })
-        
-        if (fallbackResponse.ok) {
-          const fallbackData = await fallbackResponse.json()
-          console.log('Smart scan response:', fallbackData)
-          
-          if (fallbackData.pools && fallbackData.pools.length > 0) {
-            setPools(fallbackData.pools)
-            setFilteredPools(fallbackData.pools)
-            setAgentResponse(`✅ Found ${fallbackData.found_pools} opportunities (APY ≥ ${fallbackData.parsed_params?.min_apy || 500}%)`)
-            setScanStats({
-              found: fallbackData.found_pools,
-              sources: fallbackData.data_sources || ['Raydium']
-            })
-          } else {
-            setAgentResponse('❌ No pools found matching your criteria. Try different parameters.')
-          }
-        } else {
-          throw new Error('Smart scan also failed')
-        }
-      } catch (fallbackError) {
-        console.error('Both hunt and smart scan failed:', fallbackError)
-        
-        // Show error messages
-        if (error.message?.includes('NetworkError') || error.message?.includes('Failed to fetch')) {
-          setAgentResponse('❌ Network error: Cannot reach backend API.')
-        } else {
-          setAgentResponse('❌ Search failed. Try using the quick scan buttons instead.')
-        }
-      }
+      console.error('Hunt failed:', error)
+      setAgentResponse('❌ Search failed. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -171,16 +180,6 @@ export default function Home() {
           result: analysisText,
           scoreData: (response as any).score_data || null
         })
-        
-        // You could also update the pool data with risk scores
-        // setPools(pools.map(p => p.pool_address === poolAddress ? {...p, analyzed: true} : p))
-      } else {
-        setAnalysisModal({
-          isOpen: true,
-          poolAddress: poolAddress,
-          result: 'Analysis failed: ' + (response.error || 'Unknown error'),
-          scoreData: null
-        })
       }
     } catch (error) {
       console.error('Analysis failed:', error)
@@ -203,7 +202,10 @@ export default function Home() {
       
       if (response.ok) {
         const result = await response.json()
-        alert(`✅ Position entered successfully!\n\nPool: ${pool.token_symbols}\nAmount: $100\nAPY: ${pool.apy}%`)
+        
+        // Show success celebration for demo
+        setShowSuccess(true)
+        setTimeout(() => setShowSuccess(false), 4000)
         
         // Show positions dashboard
         setShowPositions(true)
@@ -238,15 +240,6 @@ export default function Home() {
       return true
     })
     
-    // Apply age filter
-    if (filters.showOnlyNew && filters.maxAge !== null) {
-      const maxAge = filters.maxAge
-      filtered = filtered.filter(pool => {
-        const age = pool.age_hours || (pool.age_days ? pool.age_days * 24 : 24)
-        return age <= maxAge
-      })
-    }
-    
     // Apply sorting
     filtered.sort((a, b) => {
       let aVal: number = 0
@@ -260,14 +253,6 @@ export default function Home() {
         case 'tvl':
           aVal = a.tvl || 0
           bVal = b.tvl || 0
-          break
-        case 'volume':
-          aVal = a.volume_24h || 0
-          bVal = b.volume_24h || 0
-          break
-        case 'age':
-          aVal = a.age_hours || (a.age_days ? a.age_days * 24 : 24)
-          bVal = b.age_hours || (b.age_days ? b.age_days * 24 : 24)
           break
       }
       
@@ -284,83 +269,90 @@ export default function Home() {
         <div className="cyber-grid"></div>
       </div>
       
+      {/* Pool Discovery Notifications */}
+      <PoolDiscoveryNotification />
+      
+      {/* Success Celebration */}
+      <SuccessCelebration 
+        show={showSuccess} 
+        profit={250}
+        onComplete={() => setShowSuccess(false)}
+      />
+      
       {/* Main container */}
       <div className="relative z-10 container mx-auto px-6 py-12 max-w-8xl">
 
-        {/* Enhanced Header */}
-        <header className="mb-16">
-          <div className="text-center space-y-6">
-            <h1 className="text-cyber-title">
-              SOL<span className="text-cyber-primary">DEGEN</span>
-            </h1>
-            <p className="text-xl text-text-secondary max-w-3xl mx-auto leading-relaxed">
-              Multi-agent AI system hunting <span className="text-cyber-primary font-semibold">extreme yields</span> 
-              across Solana DeFi protocols
-            </p>
-            
-            {/* Live stats bar */}
-            <div className="flex justify-center items-center gap-8 text-sm">
-              <div className="flex items-center gap-2">
-                <div className="status-dot status-online"></div>
-                <span className="text-terminal">4 AGENTS ACTIVE</span>
-              </div>
-              <div className="text-text-tertiary">|</div>
-              <div className="text-cyber-tertiary">SCANNING 47 PROTOCOLS</div>
-              <div className="text-text-tertiary">|</div>
-              <div className="text-performance-extreme font-bold">HIGHEST: 2,847% APY</div>
-              <div className="text-text-tertiary">|</div>
-              <button
-                onClick={() => setShowPositions(!showPositions)}
-                className="flex items-center gap-2 text-cyber-primary hover:text-cyber-secondary transition-colors"
-              >
-                <BriefcaseIcon className="w-4 h-4" />
-                <span className="font-semibold">POSITIONS</span>
-              </button>
-            </div>
+        {/* Enhanced Animated Header */}
+        <AnimatedHero />
+        
+        {/* WebSocket Connection Status */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 2.5 }}
+          className="flex justify-center mb-8"
+        >
+          <div className={`flex items-center gap-2 px-4 py-2 rounded-full bg-terminal-surface border ${
+            isConnected ? 'border-green-500/50' : 'border-red-500/50'
+          }`}>
+            <div className={`w-2 h-2 rounded-full ${
+              isConnected ? 'bg-green-500' : 'bg-red-500'
+            } animate-pulse`} />
+            <span className="text-xs text-text-tertiary">
+              {isConnected ? 'Real-time updates active' : 'Connecting to WebSocket...'}
+            </span>
           </div>
-        </header>
+        </motion.div>
         
         {/* Agent Flow Visualizer */}
-        <div className="mb-12">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 2.8, duration: 0.5 }}
+          className="mb-12"
+        >
           <AgentFlowVisualizer isProcessing={isLoading} />
-        </div>
+        </motion.div>
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-3 space-y-8">
             {/* Search Interface */}
-            <SearchBar
-              onSearch={handleSearch}
-              onQuickScan={handleQuickScan}
-              isLoading={isLoading}
-            />
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 3, duration: 0.5 }}
+            >
+              <SearchBar
+                onSearch={handleSearch}
+                onQuickScan={handleQuickScan}
+                isLoading={isLoading}
+              />
+            </motion.div>
             
             {/* Filter Bar */}
             {pools.length > 0 && !isLoading && (
-              <FilterBar
-                onFilterChange={setFilters}
-                isExpanded={false}
-              />
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                <FilterBar
+                  onFilterChange={setFilters}
+                  isExpanded={false}
+                />
+              </motion.div>
             )}
 
-            {/* Loading State - Now simplified since we have the visualizer */}
-            {isLoading && (
-              <div className="card text-center">
-                <div className="flex flex-col items-center justify-center py-8">
-                  <h3 className="text-xl font-bold text-cyber-primary mb-2">
-                    PROCESSING YOUR REQUEST...
-                  </h3>
-                  <p className="text-text-tertiary">
-                    Watch the agents coordinate above to find the best opportunities
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Results Section */}
+            {/* Results Section with animations */}
             {(agentResponse || scanStats) && !isLoading && (
-              <div className="card-gradient">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5 }}
+                className="card-gradient"
+              >
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-2xl font-bold text-text-primary">Agent Response</h2>
                   {scanStats && (
@@ -370,48 +362,29 @@ export default function Home() {
                   )}
                 </div>
                 
-                {lastQuery && (
-                  <div className="bg-terminal-surface/50 border border-terminal-border rounded-lg p-6 mb-6 backdrop-blur-sm">
-                    <div className="flex items-center gap-3 mb-3">
-                      <span className="text-terminal text-xs uppercase tracking-widest">QUERY INPUT:</span>
-                      <div className="flex-1 h-px bg-gradient-to-r from-cyber-primary/50 to-transparent"></div>
-                    </div>
-                    <p className="text-text-secondary font-mono text-sm leading-relaxed">
-                      <span className="text-cyber-primary">$</span> {lastQuery}
-                    </p>
-                  </div>
-                )}
-                
                 {agentResponse && (
-                  <div className="bg-terminal-card/30 border border-terminal-border rounded-lg p-6 backdrop-blur-sm mb-6">
-                    <div className="flex items-center gap-3 mb-4">
-                      <span className="text-terminal text-xs uppercase tracking-widest">SYSTEM OUTPUT:</span>
-                      <div className="flex-1 h-px bg-gradient-to-r from-cyber-tertiary/50 to-transparent"></div>
-                    </div>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="bg-terminal-card/30 border border-terminal-border rounded-lg p-6 backdrop-blur-sm mb-6"
+                  >
                     <pre className="text-sm text-text-secondary whitespace-pre-wrap font-mono leading-relaxed">
                       <span className="text-cyber-primary">&gt;</span> {agentResponse}
                     </pre>
-                  </div>
+                  </motion.div>
                 )}
-                
-                {scanStats && scanStats.sources && (
-                  <div className="flex items-center gap-3 text-terminal text-xs">
-                    <span className="uppercase tracking-widest">DATA SOURCES:</span>
-                    <div className="flex items-center gap-2">
-                      {scanStats.sources.map((source, i) => (
-                        <span key={i} className="bg-terminal-surface px-2 py-1 rounded border border-cyber-primary/20">
-                          {source}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+              </motion.div>
             )}
 
-            {/* Enhanced Opportunities Grid */}
+            {/* Opportunities Grid with staggered animations */}
             {pools && pools.length > 0 && !isLoading && (
-              <div className="space-y-8">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5 }}
+                className="space-y-8"
+              >
                 <div className="flex items-center justify-between">
                   <h2 className="text-4xl font-bold text-text-primary flex items-center gap-4">
                     <span className="text-terminal text-lg">&gt;</span>
@@ -427,41 +400,116 @@ export default function Home() {
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   {filteredPools.map((pool, index) => (
-                    <div key={`${pool.pool_address}-${index}`} className="opportunity-card">
+                    <motion.div
+                      key={`${pool.pool_address}-${index}`}
+                      initial={{ opacity: 0, y: 50 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ 
+                        duration: 0.5,
+                        delay: index * 0.1 // Staggered animation
+                      }}
+                      className="opportunity-card"
+                    >
                       <OpportunityCard
                         pool={pool}
-                        onAnalyze={handleAnalyze}
+                        onAnalyze={(poolAddress) => {
+                          handleAnalyze(poolAddress)
+                          setSelectedPool(pool)
+                          setShowRiskViz(true)
+                        }}
                         onEnterPosition={handleEnterPosition}
                       />
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
-              </div>
-            )}
-
-            {/* Empty State */}
-            {(!pools || pools.length === 0) && !isLoading && !agentResponse && (
-              <div className="card text-center py-16">
-                <div className="max-w-md mx-auto">
-                  <div className="text-6xl mb-6 text-gradient">AI</div>
-                  <h3 className="text-2xl font-bold text-text-primary mb-4">
-                    Ready to Hunt Yields
-                  </h3>
-                  <p className="text-text-tertiary mb-6 leading-relaxed">
-                    Our multi-agent system is standing by to discover the best DeFi opportunities on Solana.
-                    Ask in natural language or use the quick scan buttons.
-                  </p>
-                  <div className="inline-flex items-center gap-2 text-sm text-text-tertiary bg-terminal-surface/50 px-4 py-2 rounded-lg">
-                    <span>Powered by LangChain & OpenAI</span>
-                  </div>
-                </div>
-              </div>
+              </motion.div>
             )}
           </div>
 
-          {/* Sidebar */}
-          <div className="lg:col-span-1">
-            <SystemStatus />
+          {/* Enhanced Sidebar */}
+          <div className="lg:col-span-1 space-y-6">
+            <motion.div
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 3.2, duration: 0.5 }}
+            >
+              <SystemStatus />
+            </motion.div>
+            
+            {/* Risk Visualization Panel */}
+            <AnimatePresence>
+              {showRiskViz && selectedPool && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                  transition={{ duration: 0.3 }}
+                  className="card-gradient p-6"
+                >
+                  <div className="flex justify-between items-start mb-4">
+                    <h3 className="text-lg font-semibold text-text-primary">Risk Analysis</h3>
+                    <button
+                      onClick={() => setShowRiskViz(false)}
+                      className="text-text-tertiary hover:text-text-primary"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <RiskVisualization
+                    riskScore={selectedPool.degen_score || 75}
+                    sustainabilityScore={selectedPool.sustainability_score || 3}
+                    impermanentLossRisk={65}
+                    volatility={80}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+            
+            {/* P&L Chart Demo */}
+            <AnimatePresence>
+              {showPnLChart && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <PnLChart
+                    data={mockPnLData}
+                    initialValue={1000}
+                    className="shadow-xl"
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+            
+            {/* Demo Controls */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 3.5 }}
+              className="card p-4 space-y-2"
+            >
+              <h4 className="text-sm font-semibold text-text-tertiary mb-2">Demo Features</h4>
+              <button
+                onClick={() => setShowPnLChart(!showPnLChart)}
+                className="w-full text-left text-sm text-cyber-primary hover:text-cyber-secondary transition-colors"
+              >
+                {showPnLChart ? '▼' : '▶'} P&L Chart
+              </button>
+              <button
+                onClick={() => setShowSuccess(true)}
+                className="w-full text-left text-sm text-cyber-primary hover:text-cyber-secondary transition-colors"
+              >
+                ▶ Success Animation
+              </button>
+              <button
+                onClick={() => setShowPositions(true)}
+                className="w-full text-left text-sm text-cyber-primary hover:text-cyber-secondary transition-colors"
+              >
+                ▶ Position Dashboard
+              </button>
+            </motion.div>
           </div>
         </div>
       </div>
@@ -476,33 +524,46 @@ export default function Home() {
       />
 
       {/* Positions Dashboard Modal */}
-      {showPositions && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 overflow-y-auto">
-          <div className="min-h-screen px-4 py-8">
-            <div className="max-w-7xl mx-auto">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-3xl font-bold text-text-primary">Portfolio Management</h2>
-                <button
-                  onClick={() => setShowPositions(false)}
-                  className="text-text-tertiary hover:text-text-primary transition-colors"
-                >
-                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+      <AnimatePresence>
+        {showPositions && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 overflow-y-auto"
+          >
+            <motion.div 
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 100, opacity: 0 }}
+              transition={{ type: "spring" as const, damping: 25 }}
+              className="min-h-screen px-4 py-8"
+            >
+              <div className="max-w-7xl mx-auto">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-3xl font-bold text-text-primary">Portfolio Management</h2>
+                  <button
+                    onClick={() => setShowPositions(false)}
+                    className="text-text-tertiary hover:text-text-primary transition-colors"
+                  >
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                
+                {/* Wallet Dashboard */}
+                <div className="mb-8">
+                  <WalletDashboardEnhanced />
+                </div>
+                
+                {/* Position Dashboard with P&L Charts */}
+                <PositionDashboard key={positionRefreshKey} />
               </div>
-              
-              {/* Wallet Dashboard */}
-              <div className="mb-8">
-                <WalletDashboard />
-              </div>
-              
-              {/* Position Dashboard */}
-              <PositionDashboard key={positionRefreshKey} />
-            </div>
-          </div>
-        </div>
-      )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
