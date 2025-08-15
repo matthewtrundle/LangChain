@@ -10,10 +10,12 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.0.1",
+    "canvas-confetti": "^1.9.3",
     "framer-motion": "^12.23.12",
     "lucide-react": "^0.300.0",
     "next": "14.0.4",
