@@ -1,7 +1,7 @@
 'use client'
 
 import { Pool } from '@/lib/types'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { 
   TrendingUpIcon, 
   AlertTriangleIcon, 
@@ -14,6 +14,8 @@ import {
   BarChartIcon
 } from './icons/Icons'
 import PositionEntryModal from './PositionEntryModal'
+import { useRiskAnalysis } from '@/lib/hooks/useRiskAnalysis'
+import { motion } from 'framer-motion'
 
 interface OpportunityCardProps {
   pool: Pool
@@ -24,6 +26,7 @@ interface OpportunityCardProps {
 export default function OpportunityCard({ pool, onAnalyze, onEnterPosition }: OpportunityCardProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [showEntryModal, setShowEntryModal] = useState(false)
+  const { riskAnalysis, isLoading: isLoadingRisk } = useRiskAnalysis(pool.pool_address)
 
   const handleAnalyze = async () => {
     if (onAnalyze) {
@@ -158,11 +161,58 @@ export default function OpportunityCard({ pool, onAnalyze, onEnterPosition }: Op
         </div>
       </div>
 
+      {/* Risk Analysis Section */}
+      {isLoadingRisk && (
+        <div className="bg-terminal-surface/50 rounded-lg p-3 mb-4 border border-terminal-border animate-pulse">
+          <div className="h-4 bg-terminal-surface rounded w-1/3 mb-2"></div>
+          <div className="space-y-2">
+            <div className="h-3 bg-terminal-surface rounded w-1/2"></div>
+            <div className="h-3 bg-terminal-surface rounded w-2/3"></div>
+          </div>
+        </div>
+      )}
+      {!isLoadingRisk && riskAnalysis && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-terminal-surface/50 rounded-lg p-3 mb-4 border border-terminal-border"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-text-tertiary">Risk Analysis</span>
+            <span className={`text-xs font-bold ${
+              riskAnalysis.risk_rating === 'SAFE' || riskAnalysis.risk_rating === 'LOW' ? 'text-green-500' :
+              riskAnalysis.risk_rating === 'MODERATE' ? 'text-yellow-500' :
+              'text-red-500'
+            }`}>
+              {riskAnalysis.risk_rating}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div>
+              <span className="text-text-tertiary">Degen Score:</span>
+              <span className="text-text-primary font-medium ml-1">{riskAnalysis.degen_score}%</span>
+            </div>
+            <div>
+              <span className="text-text-tertiary">Sustainability:</span>
+              <span className="text-text-primary font-medium ml-1">{riskAnalysis.sustainability_score}/10</span>
+            </div>
+            <div>
+              <span className="text-text-tertiary">IL Risk:</span>
+              <span className="text-text-primary font-medium ml-1">{riskAnalysis.impermanent_loss_risk}%</span>
+            </div>
+            <div>
+              <span className="text-text-tertiary">Volatility:</span>
+              <span className="text-text-primary font-medium ml-1">{riskAnalysis.volatility_24h}%</span>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       {/* Status Badges */}
       <div className="flex flex-wrap gap-2 mb-4">
-        {pool.risk_level && (
-          <span className={getRiskBadgeClass(pool.risk_level)}>
-            {pool.risk_level}
+        {(riskAnalysis?.risk_rating || pool.risk_level) && (
+          <span className={getRiskBadgeClass(riskAnalysis?.risk_rating || pool.risk_level)}>
+            {riskAnalysis?.risk_rating || pool.risk_level}
           </span>
         )}
         {pool.liquidity_locked && (
@@ -171,10 +221,10 @@ export default function OpportunityCard({ pool, onAnalyze, onEnterPosition }: Op
             Locked
           </span>
         )}
-        {pool.degen_score && (
+        {(riskAnalysis?.degen_score || pool.degen_score) && (
           <span className="badge-secondary">
             <BarChartIcon className="w-3 h-3 mr-1" />
-            {pool.degen_score.toFixed(1)}/10
+            {riskAnalysis ? `${riskAnalysis.degen_score}%` : `${pool.degen_score.toFixed(1)}/10`}
           </span>
         )}
         <span className="badge-secondary">
@@ -183,10 +233,10 @@ export default function OpportunityCard({ pool, onAnalyze, onEnterPosition }: Op
       </div>
 
       {/* Recommendation */}
-      {pool.recommendation && (
+      {(riskAnalysis?.recommendation || pool.recommendation) && (
         <div className="bg-terminal-surface/30 border border-degen-border rounded-lg p-3 mb-4">
           <p className="text-sm text-text-tertiary leading-relaxed">
-            {pool.recommendation}
+            {riskAnalysis?.recommendation || pool.recommendation}
           </p>
         </div>
       )}

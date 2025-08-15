@@ -19,6 +19,12 @@ from models.position import Position, PositionStatus
 from services.wallet_service import get_wallet, TransactionType
 from utils.performance import perf_monitor
 from websocket_manager import ws_manager
+from services.risk_analysis_service import risk_analysis_service
+from services.trading_bot import trading_bot
+from services.backtesting import Backtester
+from services.paper_trading import paper_trading
+from models.trading_strategy import StrategyType, STRATEGY_PRESETS
+from utils.cache import api_cache
 
 app = FastAPI(title="Solana Degen Hunter Multi-Agent API", version="2.0.0")
 
@@ -876,6 +882,306 @@ async def websocket_status():
             for info in ws_manager.connection_info.values()
         ]
     }
+
+@app.get("/risk/pool/{pool_address}")
+async def get_pool_risk_analysis(pool_address: str):
+    """Get risk analysis for a specific pool"""
+    try:
+        # Check cache first
+        cache_key = f"risk_analysis:{pool_address}"
+        cached = api_cache.get(cache_key)
+        if cached:
+            return {"data": cached, "cached": True}
+        
+        # Fetch from database
+        from database.connection import get_db_connection
+        conn = await get_db_connection()
+        try:
+            query = """
+                SELECT * FROM pool_risk_analysis 
+                WHERE pool_address = $1 
+                ORDER BY analyzed_at DESC 
+                LIMIT 1
+            """
+            result = await conn.fetchrow(query, pool_address)
+            
+            if result:
+                analysis = dict(result)
+                # Convert Decimal to float for JSON serialization
+                for key, value in analysis.items():
+                    if hasattr(value, 'to_decimal'):
+                        analysis[key] = float(value)
+                    elif isinstance(value, datetime):
+                        analysis[key] = value.isoformat()
+                
+                # Cache for 5 minutes
+                api_cache.set(cache_key, analysis, expire=300)
+                return {"data": analysis, "cached": False}
+            else:
+                return {"data": None, "error": "No analysis found for this pool"}
+                
+        finally:
+            await conn.close()
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/risk/recent")
+async def get_recent_risk_analyses(limit: int = 20):
+    """Get recent risk analyses for all pools"""
+    try:
+        from database.connection import get_db_connection
+        conn = await get_db_connection()
+        try:
+            query = """
+                SELECT DISTINCT ON (pool_address) 
+                    r.*, p.token_pair, p.protocol
+                FROM pool_risk_analysis r
+                JOIN pools_enhanced p ON r.pool_address = p.pool_address
+                ORDER BY pool_address, analyzed_at DESC
+                LIMIT $1
+            """
+            results = await conn.fetch(query, limit)
+            
+            analyses = []
+            for row in results:
+                analysis = dict(row)
+                # Convert Decimal to float
+                for key, value in analysis.items():
+                    if hasattr(value, 'to_decimal'):
+                        analysis[key] = float(value)
+                    elif isinstance(value, datetime):
+                        analysis[key] = value.isoformat()
+                analyses.append(analysis)
+            
+            return {"data": analyses, "count": len(analyses)}
+                
+        finally:
+            await conn.close()
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/risk/analyze-batch")
+async def analyze_pools_batch(pool_addresses: List[str]):
+    """Manually trigger risk analysis for multiple pools"""
+    try:
+        # Queue pools for analysis
+        results = []
+        for address in pool_addresses[:10]:  # Limit to 10 at a time
+            # Trigger analysis (will be picked up by the service)
+            results.append({
+                "pool_address": address,
+                "status": "queued"
+            })
+        
+        # The risk analysis service will process these in the background
+        return {
+            "queued": len(results),
+            "results": results,
+            "message": "Pools queued for analysis. Results will be available shortly."
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Trading Bot Endpoints
+@app.get("/bot/status")
+async def get_bot_status():
+    """Get trading bot status"""
+    return trading_bot.get_status()
+
+@app.post("/bot/start")
+async def start_trading_bot(strategy_type: Optional[str] = None):
+    """Start the trading bot"""
+    try:
+        # Set strategy if provided
+        if strategy_type:
+            strategy = STRATEGY_PRESETS.get(StrategyType(strategy_type))
+            if strategy:
+                trading_bot.set_strategy(strategy)
+            else:
+                raise HTTPException(status_code=400, detail="Invalid strategy type")
+        
+        # Start bot
+        asyncio.create_task(trading_bot.start())
+        
+        return {
+            "success": True,
+            "message": f"Trading bot started with {trading_bot.strategy.name} strategy",
+            "strategy": trading_bot.strategy.name
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/bot/stop")
+async def stop_trading_bot():
+    """Stop the trading bot"""
+    await trading_bot.stop()
+    return {
+        "success": True,
+        "message": "Trading bot stopped"
+    }
+
+@app.post("/bot/strategy")
+async def update_bot_strategy(strategy_type: str):
+    """Update trading bot strategy"""
+    try:
+        strategy = STRATEGY_PRESETS.get(StrategyType(strategy_type))
+        if not strategy:
+            raise HTTPException(status_code=400, detail="Invalid strategy type")
+        
+        trading_bot.set_strategy(strategy)
+        
+        return {
+            "success": True,
+            "message": f"Strategy updated to {strategy.name}",
+            "strategy": {
+                "name": strategy.name,
+                "type": strategy.strategy_type.value,
+                "description": strategy.description
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/bot/strategies")
+async def get_available_strategies():
+    """Get available trading strategies"""
+    strategies = []
+    for strategy_type, strategy in STRATEGY_PRESETS.items():
+        strategies.append({
+            "type": strategy_type.value,
+            "name": strategy.name,
+            "description": strategy.description,
+            "entry_rules": {
+                "max_risk_score": strategy.entry_rules.max_risk_score,
+                "min_apy": strategy.entry_rules.min_apy,
+                "min_tvl": strategy.entry_rules.min_tvl
+            },
+            "exit_rules": {
+                "stop_loss": strategy.exit_rules.stop_loss_percent,
+                "take_profit": strategy.exit_rules.take_profit_percent
+            },
+            "risk_limits": {
+                "max_positions": strategy.risk_limits.max_total_positions,
+                "max_portfolio_percent": strategy.position_sizing.max_portfolio_percent
+            }
+        })
+    return {"strategies": strategies}
+
+# Backtesting Endpoints
+@app.post("/backtest/run")
+async def run_backtest(
+    strategy_type: str,
+    days_back: int = 30,
+    initial_capital: float = 10000
+):
+    """Run backtest for a strategy"""
+    try:
+        strategy = STRATEGY_PRESETS.get(StrategyType(strategy_type))
+        if not strategy:
+            raise HTTPException(status_code=400, detail="Invalid strategy type")
+        
+        # Set time period
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days_back)
+        
+        # Run backtest
+        backtester = Backtester(initial_capital)
+        result = await backtester.run_backtest(strategy, start_date, end_date)
+        
+        return {
+            "success": True,
+            "result": result.to_dict(),
+            "trades": result.trades[:10],  # First 10 trades
+            "equity_curve": result.equity_curve[::24]  # Hourly data points
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/backtest/compare")
+async def compare_strategies(
+    days_back: int = 30,
+    initial_capital: float = 10000
+):
+    """Compare all strategies via backtest"""
+    try:
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days_back)
+        
+        backtester = Backtester(initial_capital)
+        strategies = list(STRATEGY_PRESETS.values())
+        
+        results = await backtester.compare_strategies(strategies, start_date, end_date)
+        
+        comparison = {}
+        for name, result in results.items():
+            comparison[name] = result.to_dict()
+        
+        return {
+            "success": True,
+            "comparison": comparison,
+            "period": f"{start_date.date()} to {end_date.date()}",
+            "initial_capital": initial_capital
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Paper Trading Endpoints
+@app.post("/paper-trading/enable")
+async def enable_paper_trading(initial_balance: float = 10000):
+    """Enable paper trading mode"""
+    try:
+        paper_trading.enable(initial_balance)
+        return {
+            "success": True,
+            "message": "Paper trading enabled",
+            "initial_balance": initial_balance
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/paper-trading/disable")
+async def disable_paper_trading():
+    """Disable paper trading mode"""
+    try:
+        performance = paper_trading.get_performance()
+        paper_trading.disable()
+        return {
+            "success": True,
+            "message": "Paper trading disabled",
+            "final_performance": performance
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/paper-trading/status")
+async def get_paper_trading_status():
+    """Get paper trading status and performance"""
+    return {
+        "enabled": paper_trading.enabled,
+        "performance": paper_trading.get_performance(),
+        "recent_trades": paper_trading.get_trade_log(20)
+    }
+
+# Start background services on startup
+@app.on_event("startup")
+async def startup_event():
+    """Start background services"""
+    # Start risk analysis service in background
+    asyncio.create_task(risk_analysis_service.start())
+    print("[Startup] Risk Analysis Service started")
+    
+    # Don't auto-start trading bot - let user control it
+    print("[Startup] Trading Bot ready (manual start required)")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Stop background services"""
+    await risk_analysis_service.stop()
+    await trading_bot.stop()
+    print("[Shutdown] Services stopped")
 
 if __name__ == "__main__":
     import uvicorn

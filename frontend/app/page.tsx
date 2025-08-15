@@ -24,6 +24,9 @@ import WalletDashboard from '@/components/WalletDashboard'
 import WalletDashboardEnhanced from '@/components/WalletDashboardEnhanced'
 import FilterBar, { FilterOptions } from '@/components/FilterBar'
 import { TrendingUpIcon, ActivityIcon, DatabaseIcon, BriefcaseIcon } from '@/components/icons/Icons'
+import PortfolioDashboard from '@/components/portfolio/PortfolioDashboard'
+import TradingBotControl from '@/components/TradingBotControl'
+import { useWallet } from '@solana/wallet-adapter-react'
 
 // Mock P&L data for demo
 const mockPnLData = [
@@ -39,12 +42,14 @@ const mockPnLData = [
 ]
 
 export default function EnhancedHome() {
+  const { publicKey } = useWallet()
   const [pools, setPools] = useState<Pool[]>([])
   const [filteredPools, setFilteredPools] = useState<Pool[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [lastQuery, setLastQuery] = useState('')
   const [agentResponse, setAgentResponse] = useState('')
   const [scanStats, setScanStats] = useState<{ found: number; sources: string[] } | null>(null)
+  const [activeTab, setActiveTab] = useState<'discover' | 'positions' | 'portfolio'>('discover')
   const [analysisModal, setAnalysisModal] = useState({
     isOpen: false,
     poolAddress: '',
@@ -285,6 +290,49 @@ export default function EnhancedHome() {
         {/* Enhanced Animated Header */}
         <AnimatedHero />
         
+        {/* Tab Navigation */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 2.3 }}
+          className="flex justify-center mb-8"
+        >
+          <div className="bg-terminal-surface/80 rounded-xl p-1 backdrop-blur-sm border border-terminal-border">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setActiveTab('discover')}
+                className={`px-6 py-3 rounded-lg font-medium transition-all ${
+                  activeTab === 'discover'
+                    ? 'bg-cyber-primary text-black'
+                    : 'text-text-secondary hover:text-text-primary'
+                }`}
+              >
+                🔍 Discover Pools
+              </button>
+              <button
+                onClick={() => setActiveTab('positions')}
+                className={`px-6 py-3 rounded-lg font-medium transition-all ${
+                  activeTab === 'positions'
+                    ? 'bg-cyber-primary text-black'
+                    : 'text-text-secondary hover:text-text-primary'
+                }`}
+              >
+                📊 Active Positions
+              </button>
+              <button
+                onClick={() => setActiveTab('portfolio')}
+                className={`px-6 py-3 rounded-lg font-medium transition-all ${
+                  activeTab === 'portfolio'
+                    ? 'bg-cyber-primary text-black'
+                    : 'text-text-secondary hover:text-text-primary'
+                }`}
+              >
+                💼 Portfolio Analytics
+              </button>
+            </div>
+          </div>
+        </motion.div>
+        
         {/* WebSocket Connection Status */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -318,18 +366,21 @@ export default function EnhancedHome() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-3 space-y-8">
-            {/* Search Interface */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 3, duration: 0.5 }}
-            >
-              <SearchBar
-                onSearch={handleSearch}
-                onQuickScan={handleQuickScan}
-                isLoading={isLoading}
-              />
-            </motion.div>
+            {/* Tab Content */}
+            {activeTab === 'discover' && (
+              <>
+                {/* Search Interface */}
+                <motion.div
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 3, duration: 0.5 }}
+                >
+                  <SearchBar
+                    onSearch={handleSearch}
+                    onQuickScan={handleQuickScan}
+                    isLoading={isLoading}
+                  />
+                </motion.div>
             
             {/* Filter Bar */}
             {pools.length > 0 && !isLoading && (
@@ -424,6 +475,30 @@ export default function EnhancedHome() {
                 </div>
               </motion.div>
             )}
+              </>
+            )}
+
+            {/* Positions Tab */}
+            {activeTab === 'positions' && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                <PositionDashboard key={positionRefreshKey} />
+              </motion.div>
+            )}
+
+            {/* Portfolio Analytics Tab */}
+            {activeTab === 'portfolio' && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                <PortfolioDashboard walletAddress={publicKey?.toString()} />
+              </motion.div>
+            )}
           </div>
 
           {/* Enhanced Sidebar */}
@@ -434,6 +509,15 @@ export default function EnhancedHome() {
               transition={{ delay: 3.2, duration: 0.5 }}
             >
               <SystemStatus />
+            </motion.div>
+            
+            {/* Trading Bot Control */}
+            <motion.div
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 3.3, duration: 0.5 }}
+            >
+              <TradingBotControl />
             </motion.div>
             
             {/* Risk Visualization Panel */}

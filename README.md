@@ -1,110 +1,237 @@
-# 🌙 SolDegen - Multi-Agent Solana Yield Hunter
+# 🚀 Solana Degen Yield Hunter
 
-An intelligent multi-agent system that discovers and analyzes high-yield opportunities on Solana using LangChain and OpenAI.
+An intelligent yield farming assistant for Solana that uses AI agents to discover high-APY opportunities, analyze risk, and execute automated trading strategies.
 
-![SolDegen Dashboard](https://via.placeholder.com/800x400?text=SolDegen+Dashboard)
+## 🌟 Overview
 
-## 🚀 Features
-
-- **Multi-Agent AI System**: 4 specialized agents working together
-  - 🔍 **Scanner Agent**: Discovers new high-APY pools
-  - 📊 **Analyzer Agent**: Performs deep risk assessment
-  - 👁️ **Monitor Agent**: Tracks positions and alerts
-  - 🎯 **Coordinator Agent**: Orchestrates all agents
-
-- **Real-Time Data**: Integration with DeFiLlama, Helius, Jupiter
-- **Risk Assessment**: Comprehensive "Degen Score" algorithm
-- **Natural Language**: Ask in plain English
-- **Professional UI**: AAVE-inspired dark theme
-
-## 🛠️ Tech Stack
-
-- **Backend**: Python, FastAPI, LangChain
-- **Frontend**: Next.js 14, TypeScript, TailwindCSS
-- **AI**: OpenAI GPT-4 (or OpenRouter)
-- **Data**: Helius RPC, DeFiLlama API, Jupiter
-
-## 🏃‍♂️ Quick Start
-
-### Prerequisites
-
-- Python 3.9+
-- Node.js 18+
-- OpenAI API key (or OpenRouter key)
-- Helius API key (optional)
-
-### Local Development
-
-1. **Clone the repository**
-```bash
-git clone https://github.com/yourusername/solana-degen-hunter.git
-cd solana-degen-hunter
-```
-
-2. **Backend Setup**
-```bash
-cd backend
-cp .env.example .env
-# Add your API keys to .env
-pip install -r requirements.txt
-python main.py
-```
-
-3. **Frontend Setup**
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-4. **Access the app**
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:8000
-- API Docs: http://localhost:8000/docs
-
-## 🌐 Deployment
-
-Deployed on Railway:
-- Frontend: https://soldegen.up.railway.app
-- Backend API: https://soldegen-api.up.railway.app
-
-## 📸 Screenshots
-
-### Dashboard
-Real-time discovery of high-yield opportunities with risk assessment.
-
-### Multi-Agent System
-Watch as specialized AI agents collaborate to find the best yields.
+This project combines:
+- **Multi-Agent AI System** using LangChain for intelligent pool discovery
+- **Automated Trading Bot** with configurable strategies
+- **Real-time Risk Analysis** for all discovered pools
+- **Beautiful Next.js Frontend** with live updates
+- **Paper Trading Mode** for risk-free testing
 
 ## 🏗️ Architecture
 
+### Backend (Python/FastAPI)
 ```
-┌─────────────────┐     ┌─────────────────┐
-│   Next.js UI    │────▶│  Coordinator    │
-└─────────────────┘     │     Agent       │
-                        └────────┬────────┘
-                                 │
-                    ┌────────────┴────────────┐
-                    │                         │
-            ┌───────▼────────┐       ┌───────▼────────┐
-            │ Scanner Agent  │       │ Analyzer Agent │
-            └────────────────┘       └────────────────┘
-                    │                         │
-            ┌───────▼────────┐       ┌───────▼────────┐
-            │  Real APIs     │       │ Risk Scoring   │
-            └────────────────┘       └────────────────┘
+backend/
+├── agents/           # AI agents for different tasks
+├── services/         # Core services (trading bot, risk analysis, etc.)
+├── models/           # Data models and strategies
+├── tools/            # External integrations (Helius, Raydium, etc.)
+├── database/         # PostgreSQL schemas and connections
+└── main.py          # FastAPI application
 ```
+
+### Frontend (Next.js/TypeScript)
+```
+frontend/
+├── app/             # Next.js app router
+├── components/      # React components
+├── lib/             # Utilities and API clients
+└── styles/          # Tailwind CSS
+```
+
+## 🎯 Key Features
+
+### 1. **Pool Discovery**
+- Scans Solana DEXs (Raydium, Orca, etc.) for high-yield pools
+- Filters by APY, TVL, and risk parameters
+- Real-time WebSocket updates for new opportunities
+
+### 2. **Risk Analysis**
+- Automatic risk scoring for ALL discovered pools
+- Analyzes:
+  - Rug pull risk
+  - Impermanent loss potential
+  - Sustainability metrics
+  - Liquidity depth
+  - Volume patterns
+
+### 3. **Automated Trading Bot**
+Three preset strategies:
+- **Conservative**: Low risk, 5% stop loss, 15% take profit
+- **Balanced**: Moderate risk, 10% stop loss, 30% take profit  
+- **Degen**: High risk, 20% stop loss, 100% take profit
+
+Features:
+- Smart position sizing
+- Automatic entry/exit based on rules
+- Portfolio rebalancing
+- Daily loss limits
+- Rug pull detection
+
+### 4. **Portfolio Analytics**
+- Real-time P&L tracking
+- Performance metrics and charts
+- Position history with detailed analysis
+- Win rate visualization
+- Fee and impermanent loss breakdown
+
+### 5. **Paper Trading**
+- Test strategies with virtual $10,000
+- Realistic simulation including slippage and gas
+- Track performance before risking real funds
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js 18+
+- Python 3.9+
+- PostgreSQL
+- Helius API key
+- OpenAI API key (for LangChain agents)
+
+### Backend Setup
+```bash
+cd backend
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Set environment variables
+export HELIUS_API_KEY="your-key"
+export OPENAI_API_KEY="your-key"
+export DATABASE_URL="postgresql://user:pass@localhost/solana_hunter"
+
+# Run database migrations
+python setup_database.py
+
+# Start the backend
+python main.py
+```
+
+### Frontend Setup
+```bash
+cd frontend
+
+# Install dependencies
+npm install
+
+# Set environment variables
+echo "NEXT_PUBLIC_API_URL=http://localhost:8000" > .env.local
+
+# Run development server
+npm run dev
+```
+
+### Deploy to Production
+```bash
+# Frontend (Railway/Vercel)
+npm run build
+
+# Backend (Railway)
+# Dockerfile included for deployment
+```
+
+## 📊 API Usage & Costs
+
+### Helius API Usage
+- **Daily**: ~21,600 calls (with 5 active positions)
+- **Monthly**: ~650,000 calls
+- **Recommendation**: Paid Helius plan required
+
+### OpenAI Usage
+- Minimal - only for complex analysis tasks
+- Approximately $5-10/month for moderate usage
+
+## 🎮 How to Use
+
+### 1. **Discover Pools**
+- Use the search bar to find pools (e.g., "Find SOL pools with 500%+ APY")
+- Or use quick scan buttons for preset searches
+- Risk analysis runs automatically for all pools
+
+### 2. **Manual Trading**
+- Click "Enter Position" on any pool card
+- Monitor positions in the Active Positions tab
+- View analytics in Portfolio Dashboard
+
+### 3. **Automated Trading**
+1. Enable Paper Trading (recommended for testing)
+2. Select a strategy (Conservative/Balanced/Degen)
+3. Click "Start Bot"
+4. Monitor performance in real-time
+
+### 4. **Risk Management**
+- Each pool shows risk scores automatically
+- Red = High Risk, Yellow = Moderate, Green = Low
+- Bot respects risk limits based on strategy
+
+## 🔧 Configuration
+
+### Trading Strategies (`backend/models/trading_strategy.py`)
+Customize entry/exit rules, position sizing, and risk limits.
+
+### Risk Analysis (`backend/services/risk_analysis_service.py`)
+Adjust risk scoring algorithms and thresholds.
+
+### API Endpoints
+- `/bot/start` - Start trading bot
+- `/bot/stop` - Stop trading bot
+- `/bot/strategies` - Get available strategies
+- `/risk/pool/{address}` - Get risk analysis
+- `/paper-trading/enable` - Enable paper trading
+- `/backtest/run` - Run strategy backtest
+
+## 🛡️ Safety Features
+
+1. **Position Limits**: Max positions per protocol/token
+2. **Stop Losses**: Automatic exit on losses
+3. **Daily Loss Limits**: Circuit breaker for bad days
+4. **Rug Detection**: Monitors for sudden TVL/volume drops
+5. **Gas Optimization**: Considers transaction costs
+6. **Manual Override**: Stop bot anytime
+
+## 📈 Performance Tracking
+
+The system tracks:
+- Win rate and profit factor
+- Sharpe ratio and max drawdown
+- Best/worst trades
+- Fee efficiency
+- Impermanent loss impact
+
+## 🧪 Testing
+
+### Paper Trading
+Best way to test strategies:
+```
+1. Enable paper trading in UI
+2. Start bot with chosen strategy
+3. Monitor virtual trades
+4. Analyze results before going live
+```
+
+### Backtesting
+Test strategies on historical data:
+```bash
+curl -X POST http://localhost:8000/backtest/run \
+  -H "Content-Type: application/json" \
+  -d '{"strategy_type": "balanced", "days_back": 30}'
+```
+
+## ⚠️ Disclaimers
+
+1. **High Risk**: DeFi yield farming is extremely risky
+2. **No Guarantees**: Past performance doesn't predict future results
+3. **DYOR**: Always do your own research
+4. **Start Small**: Test with small amounts first
+5. **Monitor Closely**: Bot requires supervision
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Feel free to submit issues and enhancement requests!
 
-## 📄 License
+## 📝 License
 
 MIT License - see LICENSE file for details
 
-## 🙏 Acknowledgments
+---
 
-- Built with [LangChain](https://langchain.com)
-- Powered by [OpenAI](https://openai.com)
-- Data from [Helius](https://helius.xyz) and [DeFiLlama](https://defillama.com)
+Built with ❤️ for the Solana degen community
