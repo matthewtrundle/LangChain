@@ -49,7 +49,7 @@ export default function AnimatedHero() {
       transition: {
         duration: 2,
         repeat: Infinity,
-        repeatType: "reverse"
+        repeatType: "reverse" as const
       }
     }
   }
@@ -144,7 +144,7 @@ export default function AnimatedHero() {
             transition={{
               duration: 2,
               repeat: Infinity,
-              repeatType: "loop"
+              repeatType: "loop" as const
             }}
             className="status-dot status-online"
           />
@@ -199,7 +199,7 @@ export default function AnimatedHero() {
                 duration: Math.random() * 5 + 5,
                 delay: Math.random() * 3,
                 repeat: Infinity,
-                repeatType: "loop"
+                repeatType: "loop" as const
               }}
               className="absolute"
             >

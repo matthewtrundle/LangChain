@@ -105,7 +105,7 @@ export default function SuccessCelebration({ show, profit, onComplete }: Success
                 transition={{
                   duration: 0.5,
                   repeat: 3,
-                  repeatType: "reverse"
+                  repeatType: "reverse" as const
                 }}
                 className="text-6xl"
               >
@@ -139,7 +139,7 @@ export default function SuccessCelebration({ show, profit, onComplete }: Success
               transition={{
                 duration: 2,
                 repeat: Infinity,
-                repeatType: "loop"
+                repeatType: "loop" as const
               }}
               className="absolute inset-0 rounded-2xl border-4 border-white/30"
             />
@@ -153,7 +153,7 @@ export default function SuccessCelebration({ show, profit, onComplete }: Success
                 duration: 2,
                 delay: 0.5,
                 repeat: Infinity,
-                repeatType: "loop"
+                repeatType: "loop" as const
               }}
               className="absolute inset-0 rounded-2xl border-4 border-white/20"
             />
