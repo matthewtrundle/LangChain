@@ -1,0 +1,57 @@
+#!/Users/mattrundle/Documents/Auto/gpt5-claude-orchestrator/venv/bin/python3
+"""
+Simple GPT-5 CLI tool that Claude can use directly in terminal
+"""
+import os
+import sys
+import httpx
+from pathlib import Path
+
+# Load .env from the orchestrator directory
+env_path = Path(__file__).parent / '.env'
+if env_path.exists():
+    from dotenv import load_dotenv
+    load_dotenv(env_path)
+
+# Get API key
+api_key = os.getenv('OPENROUTER_API_KEY')
+if not api_key:
+    print("Error: OPENROUTER_API_KEY not found")
+    sys.exit(1)
+
+# Get prompt from command line
+if len(sys.argv) < 2:
+    print("Usage: gpt5 <your question>")
+    sys.exit(1)
+
+prompt = ' '.join(sys.argv[1:])
+
+# Make API call
+headers = {
+    "Authorization": f"Bearer {api_key}",
+    "Content-Type": "application/json"
+}
+
+payload = {
+    "model": "openai/gpt-4o",
+    "messages": [{"role": "user", "content": prompt}],
+    "temperature": 0.7,
+    "max_tokens": 1000
+}
+
+try:
+    response = httpx.post(
+        "https://openrouter.ai/api/v1/chat/completions",
+        headers=headers,
+        json=payload,
+        timeout=30.0
+    )
+    
+    if response.status_code == 200:
+        data = response.json()
+        print(data["choices"][0]["message"]["content"])
+    else:
+        print(f"Error {response.status_code}: {response.text}")
+        
+except Exception as e:
+    print(f"Error: {e}")

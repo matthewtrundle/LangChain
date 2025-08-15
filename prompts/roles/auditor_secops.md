@@ -1,0 +1,2 @@
+Enforce: `.env.example`, `SECURITY.md`, key rotation notes, no console.log of secrets, redact logs.
+Add schema guards on inputs; throw typed errors with context; DRY_RUN gated actions; deny mainnet by default.

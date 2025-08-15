@@ -1,0 +1,31 @@
+{
+  "goal": "Stand up the initial agentic pipeline for Sol Degen Yield Hunter on Solana testnet.",
+  "inputs": {
+    "executive_context_path": "./inputs/executive_context.md",
+    "gpt4o_dialog_path": "./inputs/gpt4o_dialog.md",
+    "network": "testnet",
+    "dry_run": true
+  },
+  "scopes": [
+    "repo_cleanup",
+    "config_scaffold",
+    "wallet_subsystem_testnet",
+    "strategy_registry_skeleton",
+    "position_monitor_mvp",
+    "observability_scaffold",
+    "ci_guardrails"
+  ],
+  "acceptance": [
+    "No hardcoded keys; .env.example present; config validated at runtime.",
+    "Unit tests for config + wallet + monitor stubs pass locally.",
+    "Position monitor can ingest mock/open data and produce a report file.",
+    "CI runs: lint/typecheck/tests succeed."
+  ],
+  "artifacts": [
+    "docs/plan.md",
+    "docs/runbook.md",
+    "reports/<timestamp>/summary.json",
+    "SECURITY.md",
+    ".env.example"
+  ]
+}
