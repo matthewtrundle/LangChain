@@ -11,6 +11,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.cache import api_cache
 from utils.http_client import http_client
 from tools.pool_validator import PoolValidator
+from tools.enhanced_pool_validator import enhanced_validator
 
 class RadiumScannerInput(BaseModel):
     min_apy: float = Field(description="Minimum APY threshold", default=100)
@@ -133,8 +134,9 @@ class RadiumScannerTool(BaseTool):
             
             # Validate pools before returning
             print(f"[RadiumScanner] Validating {len(pools)} pools...")
-            validated_pools = validator.batch_validate(pools)
-            print(f"[RadiumScanner] {len(validated_pools)} pools passed validation")
+            # Use enhanced validator for better rug detection
+            validated_pools = enhanced_validator.batch_validate(pools)
+            print(f"[RadiumScanner] {len(validated_pools)} pools passed enhanced validation")
             
             # Sort by APY
             validated_pools.sort(key=lambda x: x.get("apy", 0), reverse=True)

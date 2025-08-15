@@ -471,7 +471,7 @@ async def analyze_pool(request: AnalyzeRequest):
         analysis_result = analyzer.analyze_pool(pool_data)
         
         # Combine results
-        return {
+        response_data = {
             "success": True,
             "agent": "AnalyzerAgent",
             "result": f"""
@@ -501,9 +501,15 @@ async def analyze_pool(request: AnalyzeRequest):
             "score_data": score_data,
             "analysis_data": analysis_result
         }
+        
+        print(f"[Analyze] Returning analysis for {request.pool_address}")
+        return response_data
     except HTTPException:
         raise
     except Exception as e:
+        print(f"[Analyze] Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/position/enter")
