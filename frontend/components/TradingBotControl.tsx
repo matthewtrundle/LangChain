@@ -53,7 +53,7 @@ export default function TradingBotControl() {
   const [showSettings, setShowSettings] = useState(false)
   const [paperTradingEnabled, setPaperTradingEnabled] = useState(false)
   const [paperTradingStats, setPaperTradingStats] = useState<any>(null)
-  const { lastMessage } = useWebSocket()
+  const { subscribe, isConnected } = useWebSocket()
 
   // Fetch bot status
   useEffect(() => {
@@ -71,19 +71,23 @@ export default function TradingBotControl() {
 
   // Handle WebSocket updates
   useEffect(() => {
-    if (lastMessage?.type === 'bot_status') {
-      setBotStatus(prev => ({
-        ...prev!,
-        enabled: lastMessage.enabled,
-        performance: lastMessage.performance,
-        limits: {
-          active_positions: lastMessage.active_positions,
-          max_positions: prev?.limits.max_positions || 10,
-          available_capital: lastMessage.available_capital
-        }
-      }))
-    }
-  }, [lastMessage])
+    const unsubscribe = subscribe('bot_status', (message) => {
+      if (message.data) {
+        setBotStatus(prev => ({
+          ...prev!,
+          enabled: message.data.enabled,
+          performance: message.data.performance,
+          limits: {
+            active_positions: message.data.active_positions,
+            max_positions: prev?.limits.max_positions || 10,
+            available_capital: message.data.available_capital
+          }
+        }))
+      }
+    })
+
+    return unsubscribe
+  }, [subscribe])
 
   const fetchBotStatus = async () => {
     try {
