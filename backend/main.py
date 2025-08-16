@@ -32,6 +32,7 @@ from services.backtesting import Backtester
 from services.paper_trading import paper_trading
 from models.trading_strategy import StrategyType, STRATEGY_PRESETS
 from utils.cache import api_cache
+from services.strategy_manager import strategy_manager
 
 # Import database setup
 from database.setup import run_migrations, verify_connection
@@ -1190,6 +1191,93 @@ async def get_paper_trading_status():
         "recent_trades": paper_trading.get_trade_log(20)
     }
 
+# Strategy Management Endpoints
+@app.get("/strategies")
+async def get_strategies():
+    """Get all trading strategies"""
+    strategies = await strategy_manager.get_all_strategies()
+    return {"strategies": strategies}
+
+@app.get("/strategies/performance")
+async def get_aggregate_performance():
+    """Get aggregate performance across all strategies"""
+    performance = await strategy_manager.get_aggregate_performance()
+    return performance
+
+@app.post("/strategies")
+async def create_strategy(
+    strategy_type: str,
+    capital_allocation: float = 33.33
+):
+    """Create a new strategy instance"""
+    try:
+        strategy_id = await strategy_manager.add_strategy(
+            StrategyType(strategy_type),
+            capital_allocation
+        )
+        return {
+            "success": True,
+            "strategy_id": strategy_id,
+            "message": f"Strategy {strategy_type} created"
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/strategies/{strategy_id}/start")
+async def start_strategy(strategy_id: str):
+    """Start a specific strategy"""
+    try:
+        await strategy_manager.start_strategy(strategy_id)
+        return {
+            "success": True,
+            "message": f"Strategy {strategy_id} started"
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/strategies/{strategy_id}/stop")
+async def stop_strategy(strategy_id: str):
+    """Stop a specific strategy"""
+    try:
+        await strategy_manager.stop_strategy(strategy_id)
+        return {
+            "success": True,
+            "message": f"Strategy {strategy_id} stopped"
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/strategies/paper-trading/enable")
+async def enable_strategy_paper_trading(total_capital: float = 10000):
+    """Enable paper trading for all strategies"""
+    try:
+        await strategy_manager.enable_paper_trading(total_capital)
+        return {
+            "success": True,
+            "message": "Paper trading enabled for strategies",
+            "total_capital": total_capital
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/strategies/paper-trading/disable")
+async def disable_strategy_paper_trading():
+    """Disable paper trading for strategies"""
+    try:
+        await strategy_manager.disable_paper_trading()
+        return {
+            "success": True,
+            "message": "Paper trading disabled for strategies"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Start background services on startup
 @app.on_event("startup")
 async def startup_event():
@@ -1213,6 +1301,10 @@ async def startup_event():
     # Verify database connection
     print("[Startup] Verifying database connection...")
     await verify_connection()
+    
+    # Initialize strategy manager
+    await strategy_manager.initialize()
+    print("[Startup] Strategy Manager initialized")
     
     # Start risk analysis service in background
     asyncio.create_task(risk_analysis_service.start())
