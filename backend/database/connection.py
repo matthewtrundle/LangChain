@@ -25,23 +25,36 @@ class DatabaseConnection:
             self._database_url = None
             
             # Method 1: Direct environ access
-            if 'DATABASE_URL' in os.environ:
+            if 'DATABASE_URL' in os.environ and os.environ['DATABASE_URL']:
                 self._database_url = os.environ['DATABASE_URL']
                 print(f"[DB] Found DATABASE_URL via os.environ: {self._database_url[:30]}...")
             
             # Method 2: getenv
             if not self._database_url:
-                self._database_url = os.getenv('DATABASE_URL')
-                if self._database_url:
+                env_val = os.getenv('DATABASE_URL')
+                if env_val and env_val.strip():  # Check it's not empty
+                    self._database_url = env_val
                     print(f"[DB] Found DATABASE_URL via getenv: {self._database_url[:30]}...")
             
             # Method 3: Check all env vars for DATABASE_URL
             if not self._database_url:
                 for key, value in os.environ.items():
-                    if key == 'DATABASE_URL':
+                    if key == 'DATABASE_URL' and value and value.strip():
                         self._database_url = value
                         print(f"[DB] Found DATABASE_URL via iteration: {self._database_url[:30]}...")
                         break
+            
+            # Method 4: Check for common Railway PostgreSQL patterns
+            if not self._database_url:
+                print(f"[DB] DATABASE_URL is empty or not found, checking for Railway PostgreSQL service URLs...")
+                # Look for Railway PostgreSQL service URLs
+                for key, value in os.environ.items():
+                    if ('POSTGRESQL' in key.upper() or 'POSTGRES' in key.upper()) and 'URL' in key.upper() and value:
+                        print(f"[DB] Found potential PostgreSQL URL in {key}: {value[:30]}...")
+                        if value.startswith('postgresql://'):
+                            self._database_url = value
+                            print(f"[DB] Using {key} as DATABASE_URL")
+                            break
             
             if self._database_url:
                 # Handle Railway's internal vs public URL format if needed
@@ -50,8 +63,13 @@ class DatabaseConnection:
             else:
                 print(f"[DB] DATABASE_URL not found in environment")
                 print(f"[DB] All env keys: {list(os.environ.keys())}")
-                print(f"[DB] Using fallback database URL")
-                self._database_url = "postgresql://postgres:password@localhost:5432/soldegen"
+                
+                # In production, don't use fallback - fail fast
+                if os.environ.get('RAILWAY_ENVIRONMENT') == 'production':
+                    raise ValueError("DATABASE_URL is required in production but was not found or is empty")
+                else:
+                    print(f"[DB] Using fallback database URL for development")
+                    self._database_url = "postgresql://postgres:password@localhost:5432/soldegen"
         
         return self._database_url
     

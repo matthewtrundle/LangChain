@@ -5,11 +5,24 @@ import sys
 _STARTUP_DATABASE_URL = os.environ.get('DATABASE_URL')
 _STARTUP_ENV_KEYS = list(os.environ.keys())
 
+# Check for Railway PostgreSQL service URLs
+_POSTGRES_URLS = {}
+for key, value in os.environ.items():
+    if 'POSTGRES' in key and value:
+        _POSTGRES_URLS[key] = value[:30] + '...' if len(value) > 30 else value
+
 print(f"[STARTUP] Python starting...")
 print(f"[STARTUP] DATABASE_URL exists: {'DATABASE_URL' in os.environ}")
 print(f"[STARTUP] DATABASE_URL value: {_STARTUP_DATABASE_URL[:30] + '...' if _STARTUP_DATABASE_URL else 'None'}")
+print(f"[STARTUP] DATABASE_URL empty: {os.environ.get('DATABASE_URL', '') == ''}")
 print(f"[STARTUP] RAILWAY_ENVIRONMENT: {os.environ.get('RAILWAY_ENVIRONMENT', 'not set')}")
 print(f"[STARTUP] Total env vars: {len(_STARTUP_ENV_KEYS)}")
+print(f"[STARTUP] Found PostgreSQL URLs: {_POSTGRES_URLS}")
+
+# Check for common Railway PostgreSQL patterns
+for key in os.environ:
+    if any(pattern in key.upper() for pattern in ['PGDATABASE', 'PGHOST', 'PGPORT', 'PGUSER', 'DATABASE', 'DB_']):
+        print(f"[STARTUP] Found DB-related var: {key} = {os.environ[key][:30] if os.environ[key] else 'empty'}")
 
 from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -1293,19 +1306,33 @@ async def startup_event():
     
     # First try current environment
     db_url = os.environ.get('DATABASE_URL')
-    if db_url:
+    if db_url and db_url.strip():
         print(f"[Startup] DATABASE_URL found in current environment: {db_url[:30]}...")
+    else:
+        db_url = None
     
     # If not found, try the startup capture
-    if not db_url and _STARTUP_DATABASE_URL:
+    if not db_url and _STARTUP_DATABASE_URL and _STARTUP_DATABASE_URL.strip():
         db_url = _STARTUP_DATABASE_URL
         print(f"[Startup] Using DATABASE_URL from startup capture: {db_url[:30]}...")
         # Also restore it to environment
         os.environ['DATABASE_URL'] = db_url
     
+    # If still not found, check for Railway PostgreSQL service URLs
+    if not db_url:
+        print("[Startup] DATABASE_URL not found or empty, checking for Railway PostgreSQL URLs...")
+        for key, value in os.environ.items():
+            if ('POSTGRESQL' in key.upper() or 'POSTGRES' in key.upper()) and 'URL' in key.upper() and value:
+                if value.startswith('postgresql://'):
+                    db_url = value
+                    print(f"[Startup] Found PostgreSQL URL in {key}: {db_url[:30]}...")
+                    os.environ['DATABASE_URL'] = db_url
+                    db.set_database_url(db_url)
+                    break
+    
     # If still not found, force refresh from database module
     if not db_url:
-        print("[Startup] DATABASE_URL not found, forcing refresh...")
+        print("[Startup] No PostgreSQL URL found, forcing refresh...")
         db_url = db.force_refresh_database_url()
         if db_url and not db_url.startswith("postgresql://postgres:password"):
             print(f"[Startup] DATABASE_URL found after refresh: {db_url[:30]}...")
