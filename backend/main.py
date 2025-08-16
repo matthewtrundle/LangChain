@@ -102,7 +102,9 @@ async def test_endpoint():
         "status": "ok",
         "message": "Backend is reachable",
         "timestamp": datetime.now().isoformat(),
-        "cors_test": "If you see this, CORS is working"
+        "cors_test": "If you see this, CORS is working",
+        "database_url_set": bool(os.environ.get('DATABASE_URL')),
+        "database_url_preview": os.environ.get('DATABASE_URL', 'not set')[:30] + '...' if os.environ.get('DATABASE_URL') else 'not set'
     }
 
 @app.get("/health")
@@ -1192,17 +1194,14 @@ async def get_paper_trading_status():
 @app.on_event("startup")
 async def startup_event():
     """Start background services and setup database"""
-    # Debug database URL
-    print(f"[Startup] Checking DATABASE_URL...")
-    db_url = os.environ.get('DATABASE_URL')
-    if db_url:
-        print(f"[Startup] DATABASE_URL found: {db_url[:30]}...")
-    else:
-        print(f"[Startup] DATABASE_URL not found in environment")
-        print(f"[Startup] Available env vars: {', '.join(list(os.environ.keys())[:10])}")
-    
     # Initialize database connection pool
-    await db.init_pool()
+    try:
+        await db.init_pool()
+        print("[Startup] Database pool initialized successfully")
+    except Exception as e:
+        print(f"[Startup] Database initialization failed: {e}")
+        # Continue running even if DB fails - for debugging
+        pass
     
     # Check if we need to run migrations
     if os.getenv('RUN_MIGRATIONS', '').lower() == 'true':
