@@ -27,6 +27,14 @@ import { TrendingUpIcon, ActivityIcon, DatabaseIcon, BriefcaseIcon } from '@/com
 import PortfolioDashboard from '@/components/portfolio/PortfolioDashboard'
 import TradingBotControl from '@/components/TradingBotControl'
 import { useWallet } from '@solana/wallet-adapter-react'
+import { PaperTradingProvider } from '@/contexts/PaperTradingContext'
+import StrategyControlPanel from '@/components/StrategyControlPanel'
+import AggregatePortfolioView from '@/components/AggregatePortfolioView'
+import ConservativeStrategyDashboard from '@/components/dashboards/ConservativeStrategyDashboard'
+import BalancedStrategyDashboard from '@/components/dashboards/BalancedStrategyDashboard'
+import DegenStrategyDashboard from '@/components/dashboards/DegenStrategyDashboard'
+import PaperTradingToggle from '@/components/PaperTradingToggle'
+import StrategyComparison from '@/components/StrategyComparison'
 
 // Mock P&L data for demo
 const mockPnLData = [
@@ -49,7 +57,9 @@ export default function EnhancedHome() {
   const [lastQuery, setLastQuery] = useState('')
   const [agentResponse, setAgentResponse] = useState('')
   const [scanStats, setScanStats] = useState<{ found: number; sources: string[] } | null>(null)
-  const [activeTab, setActiveTab] = useState<'discover' | 'positions' | 'portfolio'>('discover')
+  const [activeTab, setActiveTab] = useState<'discover' | 'positions' | 'portfolio' | 'strategies'>('discover')
+  const [activeStrategy, setActiveStrategy] = useState<string | null>(null)
+  const [activeStrategyView, setActiveStrategyView] = useState<'control' | 'aggregate' | 'conservative' | 'balanced' | 'degen' | 'compare'>('control')
   const [analysisModal, setAnalysisModal] = useState({
     isOpen: false,
     poolAddress: '',
@@ -268,7 +278,10 @@ export default function EnhancedHome() {
   }, [pools, filters])
 
   return (
-    <div className="min-h-screen bg-terminal-bg relative overflow-hidden">
+    <PaperTradingProvider>
+      <div className="min-h-screen bg-terminal-bg relative overflow-hidden">
+        {/* Paper Trading Toggle */}
+        <PaperTradingToggle />
       {/* Animated background grid */}
       <div className="fixed inset-0 opacity-30">
         <div className="cyber-grid"></div>
@@ -328,6 +341,16 @@ export default function EnhancedHome() {
                 }`}
               >
                 💼 Portfolio Analytics
+              </button>
+              <button
+                onClick={() => setActiveTab('strategies')}
+                className={`px-6 py-3 rounded-lg font-medium transition-all ${
+                  activeTab === 'strategies'
+                    ? 'bg-cyber-primary text-black'
+                    : 'text-text-secondary hover:text-text-primary'
+                }`}
+              >
+                🎯 Trading Strategies
               </button>
             </div>
           </div>
@@ -499,6 +522,113 @@ export default function EnhancedHome() {
                 <PortfolioDashboard walletAddress={publicKey?.toString()} />
               </motion.div>
             )}
+
+            {/* Strategies Tab */}
+            {activeTab === 'strategies' && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="space-y-6"
+              >
+                {/* Strategy Navigation */}
+                <div className="flex gap-2 mb-6">
+                  <button
+                    onClick={() => setActiveStrategyView('control')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      activeStrategyView === 'control'
+                        ? 'bg-purple-500/20 text-purple-400 border border-purple-500/40'
+                        : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                    }`}
+                  >
+                    Strategy Control
+                  </button>
+                  <button
+                    onClick={() => setActiveStrategyView('aggregate')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      activeStrategyView === 'aggregate'
+                        ? 'bg-purple-500/20 text-purple-400 border border-purple-500/40'
+                        : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                    }`}
+                  >
+                    Portfolio Overview
+                  </button>
+                  <button
+                    onClick={() => setActiveStrategyView('compare')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      activeStrategyView === 'compare'
+                        ? 'bg-purple-500/20 text-purple-400 border border-purple-500/40'
+                        : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                    }`}
+                  >
+                    Compare Strategies
+                  </button>
+                  <div className="flex-1" />
+                  <button
+                    onClick={() => setActiveStrategyView('conservative')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      activeStrategyView === 'conservative'
+                        ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40'
+                        : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                    }`}
+                  >
+                    Conservative
+                  </button>
+                  <button
+                    onClick={() => setActiveStrategyView('balanced')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      activeStrategyView === 'balanced'
+                        ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/40'
+                        : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                    }`}
+                  >
+                    Balanced
+                  </button>
+                  <button
+                    onClick={() => setActiveStrategyView('degen')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      activeStrategyView === 'degen'
+                        ? 'bg-red-500/20 text-red-400 border border-red-500/40'
+                        : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                    }`}
+                  >
+                    Degen
+                  </button>
+                </div>
+
+                {/* Strategy Content */}
+                {activeStrategyView === 'control' && (
+                  <StrategyControlPanel onStrategyChange={() => {}} />
+                )}
+                {activeStrategyView === 'aggregate' && (
+                  <AggregatePortfolioView />
+                )}
+                {activeStrategyView === 'conservative' && (
+                  <ConservativeStrategyDashboard 
+                    strategyId="conservative" 
+                    performance={{}} 
+                    isActive={true} 
+                  />
+                )}
+                {activeStrategyView === 'balanced' && (
+                  <BalancedStrategyDashboard 
+                    strategyId="balanced" 
+                    performance={{}} 
+                    isActive={true} 
+                  />
+                )}
+                {activeStrategyView === 'degen' && (
+                  <DegenStrategyDashboard 
+                    strategyId="degen" 
+                    performance={{}} 
+                    isActive={true} 
+                  />
+                )}
+                {activeStrategyView === 'compare' && (
+                  <StrategyComparison />
+                )}
+              </motion.div>
+            )}
           </div>
 
           {/* Enhanced Sidebar */}
@@ -648,6 +778,7 @@ export default function EnhancedHome() {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+      </div>
+    </PaperTradingProvider>
   )
 }
