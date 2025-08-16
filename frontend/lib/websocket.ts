@@ -25,7 +25,22 @@ class WebSocketService {
   private isConnecting: boolean = false
   
   constructor() {
-    this.url = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/ws'
+    // Use WebSocket URL from env or derive from API URL
+    if (process.env.NEXT_PUBLIC_WS_URL) {
+      this.url = process.env.NEXT_PUBLIC_WS_URL
+    } else if (process.env.NEXT_PUBLIC_API_URL) {
+      // Convert https:// to wss:// or http:// to ws://
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL
+      this.url = apiUrl.replace(/^https:/, 'wss:').replace(/^http:/, 'ws:') + '/ws'
+    } else if (typeof window !== 'undefined') {
+      // In production, use the current hostname
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+      const host = 'langchain-production-881c.up.railway.app'
+      this.url = `${protocol}//${host}/ws`
+    } else {
+      this.url = 'ws://localhost:8000/ws'
+    }
+    console.log('WebSocket URL:', this.url)
   }
   
   connect(): Promise<void> {

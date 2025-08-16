@@ -34,9 +34,21 @@ from database.connection import db
 app = FastAPI(title="Solana Degen Hunter Multi-Agent API", version="2.0.0")
 
 # Add CORS middleware
+allowed_origins = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "https://accomplished-sparkle-production.up.railway.app",
+    "https://solana-degen-hunter-frontend-production.up.railway.app",
+    "https://*.up.railway.app",  # Allow all Railway apps
+]
+
+# In production, be more permissive if needed
+if os.getenv('RAILWAY_ENVIRONMENT'):
+    allowed_origins = ["*"]  # Allow all origins in Railway
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins - Railway wildcards don't work well
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
