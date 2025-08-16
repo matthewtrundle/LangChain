@@ -6,6 +6,7 @@ import json
 import hashlib
 from datetime import datetime
 import asyncio
+import os
 
 from agents.coordinator_agent import CoordinatorAgent
 from agents.scanner_agent import ScannerAgent
@@ -25,6 +26,10 @@ from services.backtesting import Backtester
 from services.paper_trading import paper_trading
 from models.trading_strategy import StrategyType, STRATEGY_PRESETS
 from utils.cache import api_cache
+
+# Import database setup
+from database.setup import run_migrations, verify_connection
+from database.connection import db
 
 app = FastAPI(title="Solana Degen Hunter Multi-Agent API", version="2.0.0")
 
@@ -1168,7 +1173,21 @@ async def get_paper_trading_status():
 # Start background services on startup
 @app.on_event("startup")
 async def startup_event():
-    """Start background services"""
+    """Start background services and setup database"""
+    # Initialize database connection pool
+    await db.init_pool()
+    
+    # Check if we need to run migrations
+    if os.getenv('RUN_MIGRATIONS', '').lower() == 'true':
+        print("[Startup] Running database migrations...")
+        success = await run_migrations()
+        if not success:
+            print("[Startup] WARNING: Migrations failed, but continuing...")
+    
+    # Verify database connection
+    print("[Startup] Verifying database connection...")
+    await verify_connection()
+    
     # Start risk analysis service in background
     asyncio.create_task(risk_analysis_service.start())
     print("[Startup] Risk Analysis Service started")
@@ -1181,6 +1200,7 @@ async def shutdown_event():
     """Stop background services"""
     await risk_analysis_service.stop()
     await trading_bot.stop()
+    await db.close_pool()
     print("[Shutdown] Services stopped")
 
 if __name__ == "__main__":

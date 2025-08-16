@@ -336,46 +336,51 @@ class RiskAnalysisService:
         try:
             query = """
                 INSERT INTO pool_risk_analysis (
-                    pool_address, apy, tvl, volume_24h, volume_7d,
-                    overall_risk_score, degen_score, rug_risk_score,
-                    sustainability_score, liquidity_score, volume_score,
-                    impermanent_loss_risk, volatility_24h,
-                    volume_to_tvl_ratio, risk_rating, recommendation
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
-                ON CONFLICT (pool_address, date_trunc('hour', analyzed_at)) 
-                DO UPDATE SET
-                    apy = $2, tvl = $3, volume_24h = $4, volume_7d = $5,
-                    overall_risk_score = $6, degen_score = $7, rug_risk_score = $8,
-                    sustainability_score = $9, liquidity_score = $10, volume_score = $11,
-                    impermanent_loss_risk = $12, volatility_24h = $13,
-                    volume_to_tvl_ratio = $14, risk_rating = $15, recommendation = $16,
-                    analyzed_at = CURRENT_TIMESTAMP
+                    pool_address, analyzed_at, overall_risk_score, degen_score,
+                    rug_risk_score, sustainability_score, liquidity_score,
+                    volume_score, impermanent_loss_risk, volatility_24h,
+                    risk_rating, recommendation, apy, tvl, volume_24h,
+                    volume_7d, volume_to_tvl_ratio
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+                ON CONFLICT (pool_address) 
+                DO UPDATE SET 
+                    analyzed_at = $2,
+                    overall_risk_score = $3,
+                    degen_score = $4,
+                    rug_risk_score = $5,
+                    sustainability_score = $6,
+                    liquidity_score = $7,
+                    volume_score = $8,
+                    impermanent_loss_risk = $9,
+                    volatility_24h = $10,
+                    risk_rating = $11,
+                    recommendation = $12,
+                    apy = $13,
+                    tvl = $14,
+                    volume_24h = $15,
+                    volume_7d = $16,
+                    volume_to_tvl_ratio = $17
             """
             
             await conn.execute(
                 query,
                 pool_address,
-                Decimal(str(analysis['apy'])),
-                Decimal(str(analysis['tvl'])),
-                Decimal(str(analysis['volume_24h'])),
-                Decimal(str(analysis['volume_7d'])),
+                datetime.now(),
                 analysis['overall_risk_score'],
                 analysis['degen_score'],
                 analysis['rug_risk_score'],
-                Decimal(str(analysis['sustainability_score'])),
-                Decimal(str(analysis['liquidity_score'])),
-                Decimal(str(analysis['volume_score'])),
+                analysis['sustainability_score'],
+                analysis.get('liquidity_score', 0),
+                analysis.get('volume_score', 0),
                 analysis['impermanent_loss_risk'],
-                analysis['volatility_24h'],
-                Decimal(str(analysis['volume_to_tvl_ratio'])),
+                analysis.get('volatility_24h', 0),
                 analysis['risk_rating'],
-                analysis['recommendation']
-            )
-            
-            # Update pool last_analyzed timestamp
-            await conn.execute(
-                "UPDATE pools_enhanced SET last_analyzed = CURRENT_TIMESTAMP WHERE pool_address = $1",
-                pool_address
+                analysis['recommendation'],
+                analysis.get('apy', 0),
+                analysis.get('tvl', 0),
+                analysis.get('volume_24h', 0),
+                analysis.get('volume_7d', 0),
+                analysis.get('volume_to_tvl_ratio', 0)
             )
             
         finally:
