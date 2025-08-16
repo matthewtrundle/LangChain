@@ -16,13 +16,16 @@ class DatabaseConnection:
     def database_url(self) -> str:
         """Get database URL, checking env var each time"""
         if not self._database_url:
-            self._database_url = os.getenv('DATABASE_URL')
-            if not self._database_url:
+            # Force re-check of environment variable
+            env_url = os.environ.get('DATABASE_URL') or os.getenv('DATABASE_URL')
+            if env_url:
+                self._database_url = env_url
+                print(f"[DB] Using Railway PostgreSQL")
+            else:
                 # Local development fallback
                 self._database_url = "postgresql://postgres:password@localhost:5432/soldegen"
                 print("[DB] Warning: Using local database URL")
-            else:
-                print(f"[DB] Using Railway PostgreSQL")
+                print(f"[DB] Environment variables: {list(os.environ.keys())[:5]}...")  # Debug
         return self._database_url
     
     async def init_pool(self):

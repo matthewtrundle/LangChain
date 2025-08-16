@@ -8,6 +8,12 @@ from datetime import datetime
 import asyncio
 import os
 
+# Debug: Print environment info at startup
+print(f"[STARTUP] Python starting...")
+print(f"[STARTUP] DATABASE_URL exists: {'DATABASE_URL' in os.environ}")
+print(f"[STARTUP] RAILWAY_ENVIRONMENT: {os.environ.get('RAILWAY_ENVIRONMENT', 'not set')}")
+print(f"[STARTUP] First 5 env vars: {list(os.environ.keys())[:5]}")
+
 from agents.coordinator_agent import CoordinatorAgent
 from agents.scanner_agent import ScannerAgent
 from agents.analyzer_agent import AnalyzerAgent
@@ -1186,6 +1192,15 @@ async def get_paper_trading_status():
 @app.on_event("startup")
 async def startup_event():
     """Start background services and setup database"""
+    # Debug database URL
+    print(f"[Startup] Checking DATABASE_URL...")
+    db_url = os.environ.get('DATABASE_URL')
+    if db_url:
+        print(f"[Startup] DATABASE_URL found: {db_url[:30]}...")
+    else:
+        print(f"[Startup] DATABASE_URL not found in environment")
+        print(f"[Startup] Available env vars: {', '.join(list(os.environ.keys())[:10])}")
+    
     # Initialize database connection pool
     await db.init_pool()
     
