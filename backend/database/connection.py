@@ -67,6 +67,15 @@ class DatabaseConnection:
 # Global database instance
 db = DatabaseConnection()
 
+# Function for direct connection (used by risk analysis service)
+async def get_db_connection():
+    """Get a direct database connection"""
+    if not db.database_url:
+        raise ValueError("DATABASE_URL not configured")
+    
+    conn = await asyncpg.connect(db.database_url)
+    return conn
+
 # Helper function to test connection
 async def test_connection():
     """Test database connection"""

@@ -211,7 +211,7 @@ export default function OpportunityCard({ pool, onAnalyze, onEnterPosition }: Op
       {/* Status Badges */}
       <div className="flex flex-wrap gap-2 mb-4">
         {(riskAnalysis?.risk_rating || pool.risk_level) && (
-          <span className={getRiskBadgeClass(riskAnalysis?.risk_rating || pool.risk_level)}>
+          <span className={getRiskBadgeClass(riskAnalysis?.risk_rating || pool.risk_level || '')}>
             {riskAnalysis?.risk_rating || pool.risk_level}
           </span>
         )}
