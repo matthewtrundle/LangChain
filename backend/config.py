@@ -1,7 +1,9 @@
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+# Only load .env file in development, not on Railway
+if not os.getenv('RAILWAY_ENVIRONMENT'):
+    load_dotenv()
 
 class Config:
     # Core API keys

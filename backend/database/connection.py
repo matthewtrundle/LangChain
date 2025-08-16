@@ -5,17 +5,35 @@ from asyncpg import Pool, Connection
 import asyncio
 from contextlib import asynccontextmanager
 
+# Store DATABASE_URL immediately when module loads
+_CACHED_DATABASE_URL = os.environ.get('DATABASE_URL')
+
 class DatabaseConnection:
     """PostgreSQL connection manager for Railway"""
     
     def __init__(self):
         self.pool: Optional[Pool] = None
-        # Get DATABASE_URL immediately at init
-        self._database_url = os.environ.get('DATABASE_URL')
+        # Debug: Print environment info
+        print(f"[DB] RAILWAY_ENVIRONMENT: {os.environ.get('RAILWAY_ENVIRONMENT', 'not set')}")
+        print(f"[DB] Environment keys count: {len(os.environ)}")
+        
+        # Try multiple sources for DATABASE_URL
+        self._database_url = (
+            os.environ.get('DATABASE_URL') or 
+            _CACHED_DATABASE_URL or
+            os.getenv('DATABASE_URL')
+        )
+        
         if self._database_url:
             print(f"[DB] Found DATABASE_URL: {self._database_url[:30]}...")
+            # Handle Railway's internal vs public URL format if needed
+            if "railway.internal" in self._database_url and os.environ.get('RAILWAY_ENVIRONMENT'):
+                # Railway internal URLs don't work from local connections
+                print(f"[DB] Detected Railway internal URL, keeping as-is for production")
         else:
-            print(f"[DB] DATABASE_URL not found, using fallback")
+            print(f"[DB] DATABASE_URL not found in environment")
+            print(f"[DB] First 10 env keys: {list(os.environ.keys())[:10]}")
+            print(f"[DB] Using fallback database URL")
             self._database_url = "postgresql://postgres:password@localhost:5432/soldegen"
     
     @property
