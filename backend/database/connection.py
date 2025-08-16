@@ -10,12 +10,20 @@ class DatabaseConnection:
     
     def __init__(self):
         self.pool: Optional[Pool] = None
-        self.database_url = os.getenv('DATABASE_URL')
-        
-        if not self.database_url:
-            # Local development fallback
-            self.database_url = "postgresql://postgres:password@localhost:5432/soldegen"
-            print("[DB] Warning: Using local database URL")
+        self._database_url: Optional[str] = None
+    
+    @property
+    def database_url(self) -> str:
+        """Get database URL, checking env var each time"""
+        if not self._database_url:
+            self._database_url = os.getenv('DATABASE_URL')
+            if not self._database_url:
+                # Local development fallback
+                self._database_url = "postgresql://postgres:password@localhost:5432/soldegen"
+                print("[DB] Warning: Using local database URL")
+            else:
+                print(f"[DB] Using Railway PostgreSQL")
+        return self._database_url
     
     async def init_pool(self):
         """Initialize connection pool"""
