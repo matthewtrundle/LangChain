@@ -224,7 +224,7 @@ export default function OpportunityCard({ pool, onAnalyze, onEnterPosition }: Op
         {(riskAnalysis?.degen_score || pool.degen_score) && (
           <span className="badge-secondary">
             <BarChartIcon className="w-3 h-3 mr-1" />
-            {riskAnalysis ? `${riskAnalysis.degen_score}%` : `${pool.degen_score.toFixed(1)}/10`}
+            {riskAnalysis ? `${riskAnalysis.degen_score}%` : pool.degen_score ? `${pool.degen_score.toFixed(1)}/10` : 'N/A'}
           </span>
         )}
         <span className="badge-secondary">
