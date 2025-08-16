@@ -5,41 +5,65 @@ from asyncpg import Pool, Connection
 import asyncio
 from contextlib import asynccontextmanager
 
-# Store DATABASE_URL immediately when module loads
-_CACHED_DATABASE_URL = os.environ.get('DATABASE_URL')
-
 class DatabaseConnection:
     """PostgreSQL connection manager for Railway"""
     
     def __init__(self):
         self.pool: Optional[Pool] = None
-        # Debug: Print environment info
-        print(f"[DB] RAILWAY_ENVIRONMENT: {os.environ.get('RAILWAY_ENVIRONMENT', 'not set')}")
-        print(f"[DB] Environment keys count: {len(os.environ)}")
-        
-        # Try multiple sources for DATABASE_URL
-        self._database_url = (
-            os.environ.get('DATABASE_URL') or 
-            _CACHED_DATABASE_URL or
-            os.getenv('DATABASE_URL')
-        )
-        
-        if self._database_url:
-            print(f"[DB] Found DATABASE_URL: {self._database_url[:30]}...")
-            # Handle Railway's internal vs public URL format if needed
-            if "railway.internal" in self._database_url and os.environ.get('RAILWAY_ENVIRONMENT'):
-                # Railway internal URLs don't work from local connections
-                print(f"[DB] Detected Railway internal URL, keeping as-is for production")
-        else:
-            print(f"[DB] DATABASE_URL not found in environment")
-            print(f"[DB] First 10 env keys: {list(os.environ.keys())[:10]}")
-            print(f"[DB] Using fallback database URL")
-            self._database_url = "postgresql://postgres:password@localhost:5432/soldegen"
+        self._database_url = None  # Will be set on first access
     
     @property
     def database_url(self) -> str:
-        """Get database URL"""
+        """Get database URL - lazy loading to ensure env vars are available"""
+        if self._database_url is None:
+            # Debug: Print environment info
+            print(f"[DB] First access - checking for DATABASE_URL")
+            print(f"[DB] RAILWAY_ENVIRONMENT: {os.environ.get('RAILWAY_ENVIRONMENT', 'not set')}")
+            print(f"[DB] DATABASE_URL exists: {'DATABASE_URL' in os.environ}")
+            
+            # Try multiple methods to get DATABASE_URL
+            self._database_url = None
+            
+            # Method 1: Direct environ access
+            if 'DATABASE_URL' in os.environ:
+                self._database_url = os.environ['DATABASE_URL']
+                print(f"[DB] Found DATABASE_URL via os.environ: {self._database_url[:30]}...")
+            
+            # Method 2: getenv
+            if not self._database_url:
+                self._database_url = os.getenv('DATABASE_URL')
+                if self._database_url:
+                    print(f"[DB] Found DATABASE_URL via getenv: {self._database_url[:30]}...")
+            
+            # Method 3: Check all env vars for DATABASE_URL
+            if not self._database_url:
+                for key, value in os.environ.items():
+                    if key == 'DATABASE_URL':
+                        self._database_url = value
+                        print(f"[DB] Found DATABASE_URL via iteration: {self._database_url[:30]}...")
+                        break
+            
+            if self._database_url:
+                # Handle Railway's internal vs public URL format if needed
+                if "railway.internal" in self._database_url and os.environ.get('RAILWAY_ENVIRONMENT'):
+                    print(f"[DB] Detected Railway internal URL, keeping as-is for production")
+            else:
+                print(f"[DB] DATABASE_URL not found in environment")
+                print(f"[DB] All env keys: {list(os.environ.keys())}")
+                print(f"[DB] Using fallback database URL")
+                self._database_url = "postgresql://postgres:password@localhost:5432/soldegen"
+        
         return self._database_url
+    
+    def set_database_url(self, url: str):
+        """Manually set database URL"""
+        print(f"[DB] Manually setting DATABASE_URL: {url[:30]}...")
+        self._database_url = url
+    
+    def force_refresh_database_url(self):
+        """Force refresh database URL from environment"""
+        self._database_url = None  # Reset to trigger re-check
+        return self.database_url  # This will trigger the property getter
     
     async def init_pool(self):
         """Initialize connection pool"""

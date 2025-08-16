@@ -1,3 +1,16 @@
+import os
+import sys
+
+# Capture DATABASE_URL immediately at startup before any other imports
+_STARTUP_DATABASE_URL = os.environ.get('DATABASE_URL')
+_STARTUP_ENV_KEYS = list(os.environ.keys())
+
+print(f"[STARTUP] Python starting...")
+print(f"[STARTUP] DATABASE_URL exists: {'DATABASE_URL' in os.environ}")
+print(f"[STARTUP] DATABASE_URL value: {_STARTUP_DATABASE_URL[:30] + '...' if _STARTUP_DATABASE_URL else 'None'}")
+print(f"[STARTUP] RAILWAY_ENVIRONMENT: {os.environ.get('RAILWAY_ENVIRONMENT', 'not set')}")
+print(f"[STARTUP] Total env vars: {len(_STARTUP_ENV_KEYS)}")
+
 from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -6,13 +19,6 @@ import json
 import hashlib
 from datetime import datetime
 import asyncio
-import os
-
-# Debug: Print environment info at startup
-print(f"[STARTUP] Python starting...")
-print(f"[STARTUP] DATABASE_URL exists: {'DATABASE_URL' in os.environ}")
-print(f"[STARTUP] RAILWAY_ENVIRONMENT: {os.environ.get('RAILWAY_ENVIRONMENT', 'not set')}")
-print(f"[STARTUP] First 5 env vars: {list(os.environ.keys())[:5]}")
 
 from agents.coordinator_agent import CoordinatorAgent
 from agents.scanner_agent import ScannerAgent
@@ -1282,12 +1288,44 @@ async def disable_strategy_paper_trading():
 @app.on_event("startup")
 async def startup_event():
     """Start background services and setup database"""
+    # Try multiple sources for DATABASE_URL
+    db_url = None
+    
+    # First try current environment
+    db_url = os.environ.get('DATABASE_URL')
+    if db_url:
+        print(f"[Startup] DATABASE_URL found in current environment: {db_url[:30]}...")
+    
+    # If not found, try the startup capture
+    if not db_url and _STARTUP_DATABASE_URL:
+        db_url = _STARTUP_DATABASE_URL
+        print(f"[Startup] Using DATABASE_URL from startup capture: {db_url[:30]}...")
+        # Also restore it to environment
+        os.environ['DATABASE_URL'] = db_url
+    
+    # If still not found, force refresh from database module
+    if not db_url:
+        print("[Startup] DATABASE_URL not found, forcing refresh...")
+        db_url = db.force_refresh_database_url()
+        if db_url and not db_url.startswith("postgresql://postgres:password"):
+            print(f"[Startup] DATABASE_URL found after refresh: {db_url[:30]}...")
+        else:
+            print("[Startup] WARNING: No valid DATABASE_URL found")
+            print(f"[Startup] Current env vars: {list(os.environ.keys())[:20]}")
+            print(f"[Startup] Startup env vars: {_STARTUP_ENV_KEYS[:20]}")
+    
+    # Set the database URL if we found one
+    if db_url and not db_url.startswith("postgresql://postgres:password"):
+        db.set_database_url(db_url)
+    
     # Initialize database connection pool
     try:
         await db.init_pool()
         print("[Startup] Database pool initialized successfully")
     except Exception as e:
         print(f"[Startup] Database initialization failed: {e}")
+        import traceback
+        traceback.print_exc()
         # Continue running even if DB fails - for debugging
         pass
     
