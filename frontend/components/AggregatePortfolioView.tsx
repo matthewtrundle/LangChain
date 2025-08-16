@@ -490,7 +490,7 @@ export default function AggregatePortfolioView() {
             <ul className="space-y-1 text-sm text-gray-300">
               <li>• Current portfolio volatility: 18.5%</li>
               <li>• Suggested target: 15% for better risk-adjusted returns</li>
-              <li>• Correlation between strategies is healthy (< 0.6)</li>
+              <li>• Correlation between strategies is healthy (&lt; 0.6)</li>
             </ul>
           </div>
         </div>
