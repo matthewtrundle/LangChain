@@ -276,7 +276,12 @@ class StrategyManager:
                 
     async def _load_strategies_from_db(self):
         """Load saved strategies from database"""
-        conn = await get_db_connection()
+        try:
+            conn = await get_db_connection()
+        except Exception as e:
+            logger.warning(f"Database not available, skipping strategy load: {e}")
+            return
+            
         try:
             query = """
                 SELECT id, strategy_type, capital_allocation, is_active, 
@@ -309,7 +314,12 @@ class StrategyManager:
             
     async def _save_strategy_to_db(self, instance: StrategyInstance):
         """Save strategy to database"""
-        conn = await get_db_connection()
+        try:
+            conn = await get_db_connection()
+        except Exception as e:
+            logger.warning(f"Database not available, strategy not persisted: {e}")
+            return
+            
         try:
             query = """
                 INSERT INTO trading_strategies 
@@ -333,7 +343,12 @@ class StrategyManager:
             
     async def _save_performance_to_db(self, strategy_id: str, performance: Dict):
         """Save performance metrics to database"""
-        conn = await get_db_connection()
+        try:
+            conn = await get_db_connection()
+        except Exception as e:
+            logger.warning(f"Database not available, performance metrics not persisted: {e}")
+            return
+            
         try:
             query = """
                 UPDATE trading_strategies 

@@ -1343,33 +1343,50 @@ async def startup_event():
     
     # Set the database URL if we found one
     if db_url and not db_url.startswith("postgresql://postgres:password"):
-        db.set_database_url(db_url)
+        # Validate it's actually a database URL
+        if db_url.startswith(('postgresql://', 'postgres://', 'postgis://')):
+            db.set_database_url(db_url)
+        else:
+            print(f"[Startup] WARNING: Found DATABASE_URL but it's not a valid PostgreSQL URL: {db_url[:50]}...")
+            db_url = None
     
     # Initialize database connection pool
+    db_connected = False
     try:
         await db.init_pool()
         print("[Startup] Database pool initialized successfully")
+        db_connected = True
     except Exception as e:
         print(f"[Startup] Database initialization failed: {e}")
-        import traceback
-        traceback.print_exc()
-        # Continue running even if DB fails - for debugging
-        pass
+        if os.environ.get('RAILWAY_ENVIRONMENT') == 'production':
+            print("[Startup] ERROR: Database is required in production. Please configure a PostgreSQL database in Railway.")
+            print("[Startup] Instructions:")
+            print("[Startup] 1. Add a PostgreSQL service to your Railway project")
+            print("[Startup] 2. Connect it to this service")
+            print("[Startup] 3. Railway will automatically set the DATABASE_URL environment variable")
+        else:
+            print("[Startup] Running without database - some features will be limited")
     
-    # Check if we need to run migrations
-    if os.getenv('RUN_MIGRATIONS', '').lower() == 'true':
-        print("[Startup] Running database migrations...")
-        success = await run_migrations()
-        if not success:
-            print("[Startup] WARNING: Migrations failed, but continuing...")
+    # Only run migrations and verify connection if database is connected
+    if db_connected:
+        # Check if we need to run migrations
+        if os.getenv('RUN_MIGRATIONS', '').lower() == 'true':
+            print("[Startup] Running database migrations...")
+            success = await run_migrations()
+            if not success:
+                print("[Startup] WARNING: Migrations failed, but continuing...")
+        
+        # Verify database connection
+        print("[Startup] Verifying database connection...")
+        await verify_connection()
     
-    # Verify database connection
-    print("[Startup] Verifying database connection...")
-    await verify_connection()
-    
-    # Initialize strategy manager
-    await strategy_manager.initialize()
-    print("[Startup] Strategy Manager initialized")
+    # Initialize strategy manager - it should handle missing DB gracefully
+    try:
+        await strategy_manager.initialize()
+        print("[Startup] Strategy Manager initialized")
+    except Exception as e:
+        print(f"[Startup] Strategy Manager initialization failed: {e}")
+        print("[Startup] Running with limited strategy features")
     
     # Start risk analysis service in background
     asyncio.create_task(risk_analysis_service.start())
