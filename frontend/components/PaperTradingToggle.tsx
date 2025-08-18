@@ -94,7 +94,7 @@ export default function PaperTradingToggle({ onModeChange }: PaperTradingToggleP
                   {paperMode ? 'Paper Trading' : 'Live Trading'}
                 </p>
                 <p className="text-xs text-gray-400">
-                  {paperMode ? 'Testing mode active' : 'Real funds active'}
+                  {paperMode ? 'Testing mode - No real funds' : 'Real funds active'}
                 </p>
               </div>
             </div>
@@ -173,6 +173,9 @@ export default function PaperTradingToggle({ onModeChange }: PaperTradingToggleP
                         </p>
                         <p className="text-sm text-gray-500">
                           • Test strategies risk-free
+                        </p>
+                        <p className="text-sm text-green-400 mt-2">
+                          ✓ Perfect for learning how the bot works
                         </p>
                       </div>
                     </div>

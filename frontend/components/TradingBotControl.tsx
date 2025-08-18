@@ -419,6 +419,25 @@ export default function TradingBotControl() {
         )}
       </AnimatePresence>
 
+      {/* Paper Trading Instructions - Show when in Live mode with no trades */}
+      {!paperTradingEnabled && !botStatus?.enabled && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-6 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg"
+        >
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0" />
+            <div className="text-sm">
+              <p className="text-yellow-200 font-medium">👋 New to Degen Hunter?</p>
+              <p className="text-yellow-200/80 mt-1">
+                Enable Paper Trading below to test strategies with $10,000 virtual funds - no risk!
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       {/* Paper Trading Toggle */}
       <div className="mt-6 p-4 bg-terminal-surface/50 rounded-lg border border-terminal-border">
         <div className="flex items-center justify-between mb-3">
@@ -440,7 +459,7 @@ export default function TradingBotControl() {
                 : 'bg-terminal-surface border border-terminal-border text-text-secondary hover:border-cyber-primary/50'
             } ${isLoading || botStatus?.enabled ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            {paperTradingEnabled ? 'Disable' : 'Enable'} Paper Trading
+            {paperTradingEnabled ? 'Switch to Live' : '🎯 Enable Paper Trading'}
           </button>
         </div>
 
@@ -467,7 +486,10 @@ export default function TradingBotControl() {
               <div>
                 <div className="text-text-tertiary">Win Rate</div>
                 <div className="text-text-primary font-medium">
-                  {((paperTradingStats.win_rate || 0) * 100).toFixed(1)}%
+                  {paperTradingStats.total_trades > 0 
+                    ? `${((paperTradingStats.win_rate || 0) * 100).toFixed(1)}%`
+                    : 'No trades'
+                  }
                 </div>
               </div>
             </div>

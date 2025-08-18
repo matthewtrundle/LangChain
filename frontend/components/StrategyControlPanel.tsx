@@ -195,7 +195,12 @@ export default function StrategyControlPanel({ onStrategyChange }: StrategyContr
                 </div>
                 <div>
                   <p className="text-xs text-gray-400">Win Rate</p>
-                  <p className="text-sm font-medium text-white">{strategy.performance.win_rate.toFixed(1)}%</p>
+                  <p className="text-sm font-medium text-white">
+                    {strategy.performance.total_trades > 0 
+                      ? `${strategy.performance.win_rate.toFixed(1)}%`
+                      : 'No trades yet'
+                    }
+                  </p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-400">Trades</p>
