@@ -75,7 +75,7 @@ class DatabaseConnection:
                     raise ValueError("DATABASE_URL is required in production but was not found or is empty. Please configure a PostgreSQL database in Railway and ensure DATABASE_URL is set.")
                 else:
                     print(f"[DB] Using fallback database URL for development")
-                    self._database_url = "postgresql://postgres:password@localhost:5432/soldegen"
+                    self._database_url = "postgresql://mattrundle@localhost:5432/soldegen"
         
         return self._database_url
     

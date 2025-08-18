@@ -1217,6 +1217,47 @@ async def get_strategies():
     strategies = await strategy_manager.get_all_strategies()
     return {"strategies": strategies}
 
+# MVP Quick Start Endpoint
+@app.post("/mvp/start-paper-trading")
+async def start_mvp_paper_trading():
+    """Quick start MVP: Enable paper trading + Conservative strategy + Start bot"""
+    try:
+        # 1. Enable paper trading
+        await strategy_manager.enable_paper_trading(10000)
+        
+        # 2. Add conservative strategy if none exist
+        if not strategy_manager.strategies:
+            strategy_id = await strategy_manager.add_strategy(
+                strategy_type=StrategyType.CONSERVATIVE,
+                capital_allocation=5000
+            )
+        else:
+            # Use first available strategy
+            strategy_id = list(strategy_manager.strategies.keys())[0]
+        
+        # 3. Start the strategy
+        await strategy_manager.start_strategy(strategy_id)
+        
+        # 4. Run a quick scan to populate some pools
+        scan_result = await scanner.execute({"query": "Find high APY pools on Raydium"})
+        
+        return {
+            "success": True,
+            "message": "Paper trading started!",
+            "strategy_id": strategy_id,
+            "paper_trading_enabled": True,
+            "initial_balance": 10000,
+            "pools_found": len(scan_result.get("opportunities", [])),
+            "next_steps": [
+                "Trading bot will automatically find and trade opportunities",
+                "Check /strategies for status",
+                "View positions at /positions",
+                "Monitor portfolio at /portfolio/metrics/paper"
+            ]
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
 @app.get("/strategies/performance")
 async def get_aggregate_performance():
     """Get aggregate performance across all strategies"""
@@ -1272,15 +1313,18 @@ async def stop_strategy(strategy_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+class PaperTradingRequest(BaseModel):
+    total_capital: float = 10000
+
 @app.post("/strategies/paper-trading/enable")
-async def enable_strategy_paper_trading(total_capital: float = 10000):
+async def enable_strategy_paper_trading(request: PaperTradingRequest):
     """Enable paper trading for all strategies"""
     try:
-        await strategy_manager.enable_paper_trading(total_capital)
+        await strategy_manager.enable_paper_trading(request.total_capital)
         return {
             "success": True,
             "message": "Paper trading enabled for strategies",
-            "total_capital": total_capital
+            "total_capital": request.total_capital
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -1294,6 +1338,172 @@ async def disable_strategy_paper_trading():
             "success": True,
             "message": "Paper trading disabled for strategies"
         }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Portfolio Analytics Endpoints
+@app.get("/portfolio/history/{wallet_address}")
+async def get_portfolio_history(
+    wallet_address: str,
+    timeframe: str = "7d"
+):
+    """Get portfolio value history"""
+    try:
+        # For now, return actual position data if available
+        positions = position_manager.get_positions_by_wallet(wallet_address)
+        
+        # Calculate portfolio history from positions
+        history = []
+        if positions:
+            # Get unique timestamps from all positions
+            timestamps = set()
+            for pos in positions:
+                timestamps.add(pos.entry_time)
+                if pos.exit_time:
+                    timestamps.add(pos.exit_time)
+            
+            # Sort timestamps and calculate portfolio value at each point
+            sorted_times = sorted(timestamps)
+            
+            for timestamp in sorted_times:
+                total_value = 0
+                total_pnl = 0
+                fees_earned = 0
+                
+                for pos in positions:
+                    if pos.entry_time <= timestamp:
+                        if not pos.exit_time or pos.exit_time > timestamp:
+                            # Position is active at this timestamp
+                            total_value += pos.current_value
+                            total_pnl += pos.unrealized_pnl
+                            fees_earned += pos.fees_earned
+                        elif pos.exit_time <= timestamp:
+                            # Position is closed, count realized P&L
+                            total_pnl += pos.realized_pnl
+                            fees_earned += pos.fees_earned
+                
+                history.append({
+                    "timestamp": timestamp.isoformat(),
+                    "value": total_value,
+                    "pnl": total_pnl,
+                    "pnlPercent": (total_pnl / max(total_value - total_pnl, 1)) * 100,
+                    "feesEarned": fees_earned,
+                    "impermanentLoss": 0,  # TODO: Calculate IL
+                    "gasCosts": 0  # TODO: Track gas costs
+                })
+        
+        return {"history": history}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/portfolio/metrics/{wallet_address}")
+async def get_portfolio_metrics(wallet_address: str):
+    """Get portfolio performance metrics"""
+    try:
+        positions = position_manager.get_positions_by_wallet(wallet_address)
+        
+        if not positions:
+            return {"metrics": {
+                "totalValue": 0,
+                "totalInvested": 0,
+                "totalPnL": 0,
+                "totalPnLPercent": 0,
+                "winningPositions": 0,
+                "losingPositions": 0,
+                "winRate": 0,
+                "totalFeesEarned": 0,
+                "totalImpermanentLoss": 0,
+                "totalGasCosts": 0,
+                "activePositions": 0,
+                "closedPositions": 0
+            }}
+        
+        # Calculate metrics
+        total_value = 0
+        total_invested = 0
+        total_pnl = 0
+        winning = 0
+        losing = 0
+        fees_earned = 0
+        active = 0
+        closed = 0
+        
+        for pos in positions:
+            if pos.status == PositionStatus.ACTIVE:
+                active += 1
+                total_value += pos.current_value
+                total_invested += pos.entry_value
+                total_pnl += pos.unrealized_pnl
+                if pos.unrealized_pnl > 0:
+                    winning += 1
+                else:
+                    losing += 1
+            else:
+                closed += 1
+                if pos.realized_pnl > 0:
+                    winning += 1
+                else:
+                    losing += 1
+                total_pnl += pos.realized_pnl
+                total_invested += pos.entry_value
+            
+            fees_earned += pos.fees_earned
+        
+        return {"metrics": {
+            "totalValue": total_value,
+            "totalInvested": total_invested,
+            "totalPnL": total_pnl,
+            "totalPnLPercent": (total_pnl / max(total_invested, 1)) * 100,
+            "winningPositions": winning,
+            "losingPositions": losing,
+            "winRate": (winning / max(winning + losing, 1)) * 100,
+            "totalFeesEarned": fees_earned,
+            "totalImpermanentLoss": 0,  # TODO: Calculate IL
+            "totalGasCosts": 0,  # TODO: Track gas costs
+            "activePositions": active,
+            "closedPositions": closed
+        }}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/portfolio/positions/{wallet_address}")
+async def get_portfolio_positions(
+    wallet_address: str,
+    status: Optional[str] = None
+):
+    """Get portfolio positions"""
+    try:
+        positions = position_manager.get_positions_by_wallet(wallet_address)
+        
+        # Filter by status if provided
+        if status and status != "all":
+            if status == "active":
+                positions = [p for p in positions if p.status == PositionStatus.ACTIVE]
+            elif status == "closed":
+                positions = [p for p in positions if p.status != PositionStatus.ACTIVE]
+        
+        # Convert to API format
+        result = []
+        for pos in positions:
+            result.append({
+                "id": pos.id,
+                "poolName": pos.pool_name,
+                "poolAddress": pos.pool_address,
+                "entryDate": pos.entry_time.isoformat().split('T')[0],
+                "exitDate": pos.exit_time.isoformat().split('T')[0] if pos.exit_time else None,
+                "duration": f"{(datetime.now() - pos.entry_time).days} days" if pos.status == PositionStatus.ACTIVE else f"{(pos.exit_time - pos.entry_time).days} days",
+                "entryValue": pos.entry_value,
+                "exitValue": pos.exit_value,
+                "currentValue": pos.current_value if pos.status == PositionStatus.ACTIVE else None,
+                "pnl": pos.unrealized_pnl if pos.status == PositionStatus.ACTIVE else pos.realized_pnl,
+                "pnlPercent": (pos.unrealized_pnl / pos.entry_value * 100) if pos.status == PositionStatus.ACTIVE else (pos.realized_pnl / pos.entry_value * 100),
+                "fees": pos.fees_earned,
+                "apy": pos.pool_apy,
+                "status": "active" if pos.status == PositionStatus.ACTIVE else "closed",
+                "riskRating": pos.risk_score
+            })
+        
+        return {"positions": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
